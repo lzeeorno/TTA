@@ -1,10 +1,10 @@
 #!/bin/bash
 # =============================================================================
-# Canonical 50-cycle continual TTA on ImageNet-C with ViT-B/16
-# - Uses the official long-term protocol structure: 50 cycles over the canonical
-#   15-corruption order at severity 5.
-# - Removes the old 3-order shortcut so order0 is no longer reused as a fake
-#   lifelong result.
+# Continual TTA on ImageNet-C with ViT-B/16
+# - Defaults to the single-pass 15-corruption stream used by the paper's
+#   standard/continual table. Set CONTINUAL_REPEATS=50 for the separate
+#   long-horizon protocol.
+# - ORDER_IDX selects one of the three representative corruption orders.
 # =============================================================================
 
 set -euo pipefail
@@ -18,8 +18,8 @@ METHODS=("source" "atlas")
 METHODS_CSV=$(IFS=,; echo "${METHODS[*]}")
 SEED="${SEED:-1997}"
 GPU="${GPU:-0}"
-CONTINUAL_REPEATS="${CONTINUAL_REPEATS:-50}"
-ORDER_IDX=0
+CONTINUAL_REPEATS="${CONTINUAL_REPEATS:-1}"
+ORDER_IDX="${ORDER_IDX:-0}"
 CONFIG="${CONFIG:-configs/vit_imagenetc_continual.yaml}"
 RESULTS_DIR="${RESULTS_DIR:-results/imagenetc_vit_base_patch16_224_continual}"
 
@@ -28,6 +28,15 @@ LOG_DIR="${LOG_DIR:-logs/continual_vit_${TIMESTAMP}}"
 mkdir -p "$LOG_DIR"
 
 ORDER_0="brightness,contrast,defocus_blur,elastic_transform,fog,frost,gaussian_noise,glass_blur,impulse_noise,jpeg_compression,motion_blur,pixelate,shot_noise,snow,zoom_blur"
+ORDER_1="brightness,jpeg_compression,motion_blur,gaussian_noise,shot_noise,snow,glass_blur,fog,contrast,pixelate,frost,defocus_blur,elastic_transform,impulse_noise,zoom_blur"
+ORDER_2="jpeg_compression,pixelate,shot_noise,brightness,glass_blur,snow,elastic_transform,fog,gaussian_noise,impulse_noise,motion_blur,defocus_blur,frost,contrast,zoom_blur"
+ORDERS=("$ORDER_0" "$ORDER_1" "$ORDER_2")
+
+if ! [[ "$ORDER_IDX" =~ ^[0-2]$ ]]; then
+    echo "[ERROR] ORDER_IDX must be 0, 1, or 2; got '$ORDER_IDX'" >&2
+    exit 1
+fi
+ORDER="${ORDERS[$ORDER_IDX]}"
 
 result_has_target_repeats() {
     local result_file="$1"
@@ -67,12 +76,12 @@ PY
 }
 
 echo "=============================================="
-echo "Canonical 50-cycle Continual TTA on ImageNet-C (ViT-B/16)"
+echo "Continual TTA on ImageNet-C (ViT-B/16)"
 echo "=============================================="
 echo "Backbone:  ViT-B/16 (timm, pretrained)"
 echo "Adapt:     LayerNorm parameters"
 echo "Methods:   ${METHODS[*]}"
-echo "Protocol:  canonical order0, ${CONTINUAL_REPEATS} cycles"
+echo "Protocol:  order${ORDER_IDX}, ${CONTINUAL_REPEATS} cycle(s)"
 echo "Seed:      ${SEED}"
 echo "GPU:       ${GPU}"
 echo "Config:    ${CONFIG}"
@@ -113,23 +122,23 @@ for METHOD in "${METHODS[@]}"; do
     echo "  Starting at: $(date '+%Y-%m-%d %H:%M:%S')"
 
     if result_has_target_repeats "$RESULT_FILE" "$CONTINUAL_REPEATS"; then
-        echo -e "\033[1;33m  ↷ Skip canonical 50-cycle run: found ${RESULT_FILE}\033[0m"
+        echo -e "\033[1;33m  ↷ Skip continual run: found ${RESULT_FILE}\033[0m"
         continue
     fi
 
     if [ -s "$RESULT_FILE" ]; then
-        echo -e "\033[1;33m  ! Stale order0 result found without continual_repeats=${CONTINUAL_REPEATS}; forcing rerun\033[0m"
+        echo -e "\033[1;33m  ! Stale order${ORDER_IDX} result found without continual_repeats=${CONTINUAL_REPEATS}; forcing rerun\033[0m"
         FORCE_RUN=1
     fi
 
     EXP_START_TIME=$(date +%s)
 
-    RUN_FORCE="$FORCE_RUN" run_python_experiment "$LOG_FILE" "$METHOD order=${ORDER_IDX} continual-vit-50cycle" \
+    RUN_FORCE="$FORCE_RUN" run_python_experiment "$LOG_FILE" "$METHOD order=${ORDER_IDX} continual-vit" \
         --config "$CONFIG" \
         --method "$METHOD" \
         --seed "$SEED" \
         --gpu "$GPU" \
-        --corruption-order "$ORDER_0" \
+        --corruption-order "$ORDER" \
         --order-idx "$ORDER_IDX" \
         --continual-repeats "$CONTINUAL_REPEATS"
 
@@ -156,7 +165,7 @@ PY
             echo -e "\033[1;31m  ✗ order=${ORDER_IDX}: failed to extract accuracy\033[0m"
         fi
     else
-        echo -e "\033[1;31m  ✗ order=${ORDER_IDX}: missing canonical 50-cycle metadata in ${RESULT_FILE}\033[0m"
+        echo -e "\033[1;31m  ✗ order=${ORDER_IDX}: missing continual metadata in ${RESULT_FILE}\033[0m"
         exit 1
     fi
 
@@ -170,7 +179,7 @@ TOTAL_DURATION=$((END_TIME - START_TIME))
 
 echo ""
 echo "=============================================="
-echo "Canonical 50-cycle continual ViT experiments completed!"
+echo "Continual ViT experiments completed!"
 echo "=============================================="
 echo "Total time: ${TOTAL_DURATION}s ($((TOTAL_DURATION / 60))m $((TOTAL_DURATION % 60))s)"
 echo "Results: ${RESULTS_DIR}/"
