@@ -9,7 +9,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/run_common.sh"
 cd "$PROJECT_ROOT"
 
-METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "deyo" "rotta" "triad" "atlas")
+METHODS=("source" "atlas")
 SEEDS=(1997 2048 2077)
 GPU=0
 CONFIG="configs/cifar100c.yaml"

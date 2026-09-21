@@ -11,7 +11,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/run_common.sh"
 cd "$PROJECT_ROOT"
 
-METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "deyo" "rotta" "triad" "atlas")
+METHODS=("source" "atlas")
 NUM_ORDERS=3
 SEED=1997
 GPU=0

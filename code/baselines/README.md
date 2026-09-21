@@ -1,7 +1,7 @@
-# External baseline location
+# External comparison location
 
 Comparison-method source code is intentionally not included in this public
-release. The historical unified runner (`code/main.py`) imports baselines from
-this directory, so baseline comparisons require separate user-managed
-checkouts. See the repository-level `THIRD_PARTY_PROVENANCE.md` and README for
-official repositories and recorded revisions.
+release. The released entry points run the source model or the released TTA
+adapter without this directory. Optional comparison wrappers accept separate
+user-managed checkouts; see `THIRD_PARTY_PROVENANCE.md` for the recorded
+repositories, revisions, and licenses.

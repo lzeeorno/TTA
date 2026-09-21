@@ -11,7 +11,7 @@ source "$SCRIPT_DIR/lib/run_common.sh"
 cd "$PROJECT_ROOT"
 
 
-METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "deyo" "rotta" "triad" "atlas" "triad_f4")
+METHODS=("source" "atlas")
 SEEDS=(1997 2048 2077)
 GPU=0
 CONFIG="configs/imagenetc.yaml"

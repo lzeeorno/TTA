@@ -5,8 +5,7 @@ Cityscapes-pretrained SegFormer-B5 -> ACDC continual adaptation.
 
 Implemented methods:
 - source: no adaptation
-- tent: entropy minimization on LayerNorm affine params
-- atlas: ATLAS four-component TTA on LayerNorm affine params
+- atlas: the released TTA adapter on LayerNorm affine params
 
 This script is intentionally lightweight and self-contained for reproducible runs.
 """
@@ -165,12 +164,6 @@ def collect_samples(acdc_root: str, split: str = "val") -> List[Sample]:
                     )
 
     return samples
-
-
-def entropy_loss_from_logits(logits: torch.Tensor) -> torch.Tensor:
-    probs = F.softmax(logits, dim=1)
-    ent = -(probs * torch.log(probs.clamp_min(1e-8))).sum(dim=1)
-    return ent.mean()
 
 
 def compute_confusion_matrix(
@@ -341,25 +334,6 @@ def online_error_by_condition(miou: Dict[str, Optional[float]]) -> Dict[str, Opt
     return errors
 
 
-def configure_tent(model: SegformerForSemanticSegmentation) -> Tuple[List[torch.nn.Parameter], List[str]]:
-    model.train()
-    for p in model.parameters():
-        p.requires_grad = False
-
-    params, names = [], []
-    for n, m in model.named_modules():
-        if isinstance(m, torch.nn.LayerNorm):
-            if m.weight is not None:
-                m.weight.requires_grad = True
-                params.append(m.weight)
-                names.append(f"{n}.weight")
-            if m.bias is not None:
-                m.bias.requires_grad = True
-                params.append(m.bias)
-                names.append(f"{n}.bias")
-    return params, names
-
-
 def run(args: argparse.Namespace) -> Dict:
     set_seed(args.seed)
     use_cuda = torch.cuda.is_available()
@@ -471,17 +445,11 @@ def run(args: argparse.Namespace) -> Dict:
     model = SegformerForSemanticSegmentation.from_pretrained(args.model_name_or_path)
     model.to(device)
 
-    optimizer = None
     atlas_adapter = None
     result_method = args.method
     if args.result_suffix:
         result_method = f"{result_method}_{args.result_suffix}"
-    if args.method == "tent":
-        params, _ = configure_tent(model)
-        if len(params) == 0:
-            raise RuntimeError("No trainable LayerNorm params found for TENT.")
-        optimizer = torch.optim.Adam(params, lr=args.lr, betas=(0.9, 0.999), weight_decay=args.weight_decay)
-    elif args.method == "atlas":
+    if args.method == "atlas":
         atlas_vit_ln_config = {
             "pi": args.atlas_vit_ln_pi,
             "entropy_margin_scale": args.atlas_vit_ln_entropy_margin_scale,
@@ -539,16 +507,7 @@ def run(args: argparse.Namespace) -> Dict:
             sample_ids = batch["sample_id"]
             round_indices = batch["round_index"]
 
-            if args.method == "tent":
-                model.train()
-                optimizer.zero_grad(set_to_none=True)
-                out = model(pixel_values=x)
-                logits = out.logits
-                logits = F.interpolate(logits, size=y.shape[-2:], mode="bilinear", align_corners=False)
-                loss = entropy_loss_from_logits(logits)
-                loss.backward()
-                optimizer.step()
-            elif args.method == "atlas":
+            if args.method == "atlas":
                 logits = atlas_adapter.adapt_batch(x)
                 logits = F.interpolate(logits, size=y.shape[-2:], mode="bilinear", align_corners=False)
             else:
@@ -640,9 +599,7 @@ def run(args: argparse.Namespace) -> Dict:
         "protocol": PROTOCOL,
         "legacy_protocol": "table5_unified_repo_v1",
         "source_references": [
-            "references/SURGEON_Memory-Adaptive_CVPR_2025_paper.pdf",
-            "code/baselines/SURGEON-master/README.md",
-            "code/baselines/SURGEON-master/test_time.py",
+            "THIRD_PARTY_PROVENANCE.md",
         ],
         "model_name_or_path": args.model_name_or_path,
         "device": str(device),
@@ -664,9 +621,9 @@ def run(args: argparse.Namespace) -> Dict:
         "total_sequence_length": len(sequence),
         "samples_per_condition": samples_per_condition,
         "observed_samples_per_timestamp": count_by_timestamp,
-        "optimizer": "Adam" if args.method in {"tent", "atlas"} else "none",
-        "lr": args.lr if args.method in {"tent", "atlas"} else None,
-        "weight_decay": args.weight_decay if args.method in {"tent", "atlas"} else None,
+        "optimizer": args.atlas_optimizer if args.method == "atlas" else "none",
+        "lr": args.lr if args.method == "atlas" else None,
+        "weight_decay": args.weight_decay if args.method == "atlas" else None,
         "seed": args.seed,
         "result_suffix": args.result_suffix,
         "sane_normalizer": args.sane_normalizer if args.method == "atlas" and not args.no_uan else None,
@@ -712,7 +669,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser()
     p.add_argument("--acdc-root", type=str, default="data/acdc")
     p.add_argument("--model-name-or-path", type=str, default="nvidia/segformer-b5-finetuned-cityscapes-1024-1024")
-    p.add_argument("--method", type=str, choices=["source", "tent", "atlas"], required=True)
+    p.add_argument("--method", type=str, choices=["source", "atlas"], required=True)
     p.add_argument("--split", type=str, default="train")
     p.add_argument("--rounds", type=int, default=10)
     p.add_argument("--batch-size", type=int, default=1)

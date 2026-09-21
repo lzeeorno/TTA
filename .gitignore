@@ -13,6 +13,8 @@ release_audit/
 private/
 secrets/
 credentials/
+paper/
+references/
 *.pt
 *.pth
 *.ckpt
@@ -81,10 +83,6 @@ docs/rebuttal/
 *hash*
 *.sha256
 *.sha256sum
-
-# The manuscript's public experiment section is a paper artifact, not a
-# private experiment log.
-!paper/NeurIPS2026_V9/sections/experiments.tex
 
 # Local external baseline checkouts are documented, not vendored here.
 code/baselines/SURGEON-master/

@@ -1,56 +1,36 @@
 # Test-Time Adaptation
 
-This repository provides a reproducible implementation of a test-time
-adaptation (TTA) method for pretrained vision models under distribution shift.
-The released method is evaluated on image classification, dense prediction,
-and vision-language adaptation, and can reach state-of-the-art (SOTA) results
-under the documented protocols. Data, checkpoints, comparison implementations,
-logs, and private research material are intentionally excluded.
+This repository contains a reproducible test-time adaptation (TTA) method for
+pretrained vision models under distribution shift. The released implementation
+covers image classification, semantic segmentation, and vision-language
+adaptation, and can reach state-of-the-art (SOTA) results under the documented
+evaluation protocols.
+
+Datasets, checkpoints, generated results, comparison implementations, and
+private research material are intentionally excluded.
 
 ## Repository Structure
 
 ```text
 .
 ├── code/
-│   ├── atlas/
-│   │   ├── common.py                 # Shared views, scores, anchors, and normalization
-│   │   ├── classification.py         # Image classification TTA adapter
-│   │   ├── segmentation.py           # Dense-prediction TTA adapter
-│   │   ├── vlm_instance.py           # Episodic prompt-context adaptation
-│   │   ├── vlm_prompt_ensemble.py    # CLIP prompt-view construction
-│   │   └── __init__.py
-│   ├── datasets/__init__.py          # CIFAR-C/ImageNet-C/natural-shift loaders
-│   ├── models/__init__.py            # Public backbone loaders
-│   ├── segmentation/
-│   │   └── run_acdc_segformer_table5.py
-│   ├── utils/
-│   │   ├── runtime.py                # Public runner utilities
-│   │   ├── fisher.py                 # Optional Fisher helper
-│   │   └── __init__.py
-│   └── main.py                       # Classification experiment entry point
-├── configs/                          # Reproduction YAML files
-├── scripts/
-│   ├── lib/run_common.sh             # Shared shell helpers
-│   ├── run_cifar100c_continual.sh
-│   ├── run_imagenetc_all*.sh
-│   ├── run_natural_shifts.sh
-│   ├── run_imagenetc_wild_vit.sh
-│   ├── run_table5_segmentation_acdc.sh
-│   ├── run_table6_vlm_tta.sh
-│   ├── ablation_table7.sh
-│   ├── run_table5_sane_ablation.sh
-│   ├── generate_*summary.py          # Result aggregation utilities
-│   └── visualization/make_acdc_qualitative.py
-├── tests/                             # Unit and protocol smoke tests
-├── requirements.txt
-├── THIRD_PARTY_PROVENANCE.md
-└── .gitignore
+│   ├── main.py                       # Classification entry point
+│   ├── datasets/                     # Public corruption and shift loaders
+│   ├── models/                       # Public backbone loaders
+│   ├── utils/                        # Runtime helpers
+│   └── segmentation/                 # ACDC segmentation entry point
+├── configs/                          # Reproduction YAML configurations
+├── scripts/                          # Benchmark and result-aggregation helpers
+├── tests/                            # Unit and protocol smoke tests
+├── requirements.txt                  # Python dependencies
+├── THIRD_PARTY_PROVENANCE.md         # External comparison provenance
+└── .gitignore                        # Data, credentials, and private-artifact rules
 ```
 
-The comparison-method directories are deliberately absent. Their official
-repositories, revisions, licenses, and local wrapper expectations are listed
-in `THIRD_PARTY_PROVENANCE.md`; obtain them directly from their authors when a
-full comparison table is required.
+The comparison-method source trees are deliberately absent. Their official
+repositories, revisions, licenses, and local wrapper expectations are recorded
+in `THIRD_PARTY_PROVENANCE.md` for users who need to reproduce a comparison
+table independently.
 
 ## Installation
 
@@ -73,14 +53,14 @@ No dataset, checkpoint, API credential, log, or generated result is included.
 Download each resource from its official source and place it at the path named
 by the selected configuration.
 
-| Resource | Expected location | Notes |
-|---|---|---|
-| CIFAR-100-C | `data/cifar-100-c/` | Include one `.npy` file per corruption and `labels.npy`. |
-| ImageNet-C | `data/imagenet-c/` | ImageNet validation data are also needed for some loaders. |
-| ImageNet-A/R/V2/Sketch | `data/imagenet-a/`, `data/imagenet-r/`, `data/imagenet-v2/`, `data/imagenet-sketch/` | Follow the directory layout in the natural-shift YAML files. |
-| Cityscapes to ACDC | `data/acdc/` and a Cityscapes-pretrained SegFormer-B5 checkpoint | Both are obtained through their official portals. |
-| CLIP ViT-B/16 | `models/clip/openai/ViT-B-16.pt` | Download from the official CLIP release. |
-| CoOp initialization | `models/coop/imagenet/vit_b16_ep50_nctx4_seed1/model.pth.tar-50` | Needed only for the CoOp prompt setting. |
+| Resource | Expected location |
+|---|---|
+| CIFAR-100-C | `data/cifar-100-c/` |
+| ImageNet-C | `data/imagenet-c/` |
+| ImageNet-A/R/V2/Sketch | `data/imagenet-a/`, `data/imagenet-r/`, `data/imagenet-v2/`, `data/imagenet-sketch/` |
+| Cityscapes to ACDC | `data/acdc/` plus a Cityscapes-pretrained SegFormer checkpoint |
+| CLIP ViT-B/16 | `models/clip/openai/ViT-B-16.pt` |
+| CoOp initialization | `models/coop/imagenet/vit_b16_ep50_nctx4_seed1/model.pth.tar-50` |
 
 Do not commit downloaded data or weights. The ignore rules cover common model,
 database, cache, credential, and generated-artifact names.
@@ -94,183 +74,60 @@ pytest -q tests
 bash -n scripts/*.sh scripts/lib/*.sh
 ```
 
-The smoke tests do not download data or run a benchmark. To enter the
-classification path without third-party comparisons, use an installed dataset
-and a one-batch cap, for example:
+The smoke tests do not download data or run a benchmark. A one-batch
+classification smoke run can be started after the selected dataset and
+checkpoint are installed:
 
 ```bash
 python code/main.py \
   --config configs/vit_imagenetc.yaml \
-  --method atlas --max-batches 1 --gpu 0
+  --max-batches 1 \
+  --gpu 0
 ```
 
-## Reproduce the Main Tables
+The default command uses the released adapter. Use `--method source` when a
+source-model-only reference is required.
 
-The commands below run the released method. The batch wrappers also enumerate
-comparison methods; those rows require the external checkouts documented in
-`THIRD_PARTY_PROVENANCE.md`. `SEED`, `GPU`, `MAX_SAMPLES`, and data-root values
-can be overridden through the corresponding configuration or environment
-variables.
+## Benchmark Protocols
 
-### Table 1: CIFAR-100-C continual
+The YAML files and shell wrappers define the supported standard, continual,
+single-sample, label-shift, mixed-shift, natural-shift, segmentation, and
+vision-language protocols. Each wrapper writes JSON summaries below `results/`;
+those generated files are ignored by Git.
 
-Dataset: CIFAR-100-C, ResNeXt-29, severity 5, three fixed corruption orders.
+The following matrix is the shortest route through the eight reported
+protocol groups. The wrappers run the source reference and the released
+adapter by default; no comparison source is required for these commands.
 
-```bash
-python code/main.py --config configs/cifar100c_continual.yaml \
-  --method atlas --seed 1997 --gpu 0 \
-  --corruption-order brightness,contrast,defocus_blur,elastic_transform,fog,frost,gaussian_noise,glass_blur,impulse_noise,jpeg_compression,motion_blur,pixelate,shot_noise,snow,zoom_blur \
-  --order-idx 0
-```
+| Group | Dataset / backbone | Protocol and configuration | Command | Output and metric | Hardware / runtime |
+|---|---|---|---|---|---|
+| 1 | CIFAR-100-C / ResNeXt-29 | Continual severity-5 stream; `configs/cifar100c_continual.yaml` | `bash scripts/run_cifar100c_continual.sh` | `results/cifar100c_resnext29_continual/`; top-1 accuracy | CUDA GPU; minutes per seed, hardware dependent |
+| 2 | ImageNet-C / GN ResNet-50 and ViT-B/16 | Standard and continual corruption streams; `configs/imagenetc*.yaml`, `configs/vit_imagenetc*.yaml` | Run `scripts/run_imagenetc_all*.sh` and `scripts/run_imagenetc_continual*.sh` | Matching `results/imagenetc_*` directories; mean top-1 accuracy | CUDA GPU with model-appropriate batch size; typically hours for full 15-corruption sweeps |
+| 3 | ImageNet-A/R/V2/Sketch / ResNet-50-GN and ViT-B/16 | Natural shifts; corresponding `configs/imagenet_*_vit.yaml` files | `bash scripts/run_natural_shifts.sh` | `results/imagenet_*`; top-1 accuracy per shift and mean | CUDA GPU; hours for all datasets and seeds |
+| 4 | ImageNet-C / ViT-B/16 | Batch-size-one, label-shift, and mixed-shift streams; `configs/vit_imagenetc_wild_*.yaml` | `bash scripts/run_imagenetc_wild_vit.sh` | `results/imagenetc_vit_*_wild*/`; mean top-1 accuracy and per-shift summaries | CUDA GPU; hours, dominated by the batch-size-one stream |
+| 5 | ACDC / Cityscapes-pretrained SegFormer-B5 | Ten-round fog/night/rain/snow continual stream; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_segmentation_acdc.sh` | `results/table5_segformer_acdc_surgeon_cotta/`; mIoU and online error | CUDA GPU with substantial memory; hours, depending on sample cap |
+| 6 | ImageNet-A/V/R/K / CLIP ViT-B/16 | Episodic prompt-context adaptation; `configs/table6_vlm_tta.yaml` | `bash scripts/run_table6_vlm_tta.sh` | `results/table6_vlm_tta/`; top-1 accuracy by prompt setting and test set | CUDA GPU and CLIP/CoOp weights; hours for all test sets |
+| 7 | ImageNet-C / ViT-B/16 | Role-level continual ablations; `configs/vit_imagenetc_continual.yaml` | `bash scripts/ablation_table7.sh` | Selected result directory; mean top-1 accuracy and ablation manifest | CUDA GPU; hours for the complete ablation set |
+| 8 | ACDC / SegFormer-B5 | Selected-entity normalization ablation; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_sane_ablation.sh` | `results/table5_sane_ablation/`; mIoU and online error | CUDA GPU; hours, depending on sample cap |
 
-Results are written under the configured `logging.results_dir` (normally
-`results/cifar100c_resnext29_continual/`). Repeat with the two order strings in
-`scripts/run_cifar100c_continual.sh` for the reported order spread.
+For every group, record the YAML revision, checkpoint path, seed, corruption
+order, batch size, and any sample cap together with the generated JSON. A
+one-batch or small-sample smoke run should be completed before a full sweep.
 
-### Table 2: ImageNet-C standard and continual
+For a full comparison table, prepare the external repositories listed in
+`THIRD_PARTY_PROVENANCE.md` and pass their paths through the documented wrapper
+variables. No third-party method source is distributed here.
 
-The ResNet-50-GN standard/continual configs are `configs/imagenetc.yaml` and
-`configs/imagenetc_continual.yaml`. The ViT-B/16 configs are
-`configs/vit_imagenetc.yaml` and `configs/vit_imagenetc_continual.yaml`.
-Standard evaluation resets before each corruption; continual evaluation keeps
-one online state across the stream. The corresponding batch wrappers are
-`scripts/run_imagenetc_all.sh`, `scripts/run_imagenetc_continual.sh`,
-`scripts/run_imagenetc_all_vit.sh`, and `scripts/run_imagenetc_continual_vit.sh`.
+## Reproducibility Notes
 
-```bash
-python code/main.py --config configs/vit_imagenetc.yaml \
-  --method atlas --seed 1997 --gpu 0 --max-batches 1
-python code/main.py --config configs/vit_imagenetc_continual.yaml \
-  --method atlas --seed 1997 --gpu 0 --max-batches 1
-```
+- Keep the configuration file, random seed, corruption order, and batch size
+  fixed when comparing runs.
+- Record the exact checkpoint and dataset revisions outside this repository.
+- Use the result-aggregation scripts only on locally generated JSON files.
+- The public tests validate imports, adapter invariants, and runner argument
+  handling; they do not certify a benchmark score.
 
-The one-batch commands are smoke checks. Remove `--max-batches 1` for the full
-15-corruption run and repeat the documented seeds/orders.
+## License and Citation
 
-### Table 3: Natural shifts
-
-The ViT-B/16 configurations are `configs/imagenet_a_vit.yaml`,
-`configs/imagenet_r_vit.yaml`, `configs/imagenet_v2_vit.yaml`, and
-`configs/imagenet_sketch_vit.yaml`. Run one dataset at a time with
-`--method atlas`; `scripts/run_natural_shifts.sh` is the multi-dataset wrapper.
-Results are saved in the matching `results/imagenet_*_vit_base_patch16_224/`
-directory.
-
-### Table 4: Wild ImageNet-C
-
-This table uses ViT-B/16 with label-shift, mixed-shift, and batch-size-one
-protocols. Use the released wrapper for a method-only run:
-
-```bash
-bash scripts/run_imagenetc_wild_vit.sh --method atlas --scenario bs1 --seed 1997 --gpu 0
-bash scripts/run_imagenetc_wild_vit.sh --method atlas --scenario label_shifts --seed 1997 --gpu 0
-bash scripts/run_imagenetc_wild_vit.sh --method atlas --scenario mix_shifts --seed 1997 --gpu 0
-```
-
-The three output directories are named in the wrapper and the matching YAML
-files are `vit_imagenetc_wild_bs1.yaml`,
-`vit_imagenetc_wild_labelshift.yaml`, and
-`vit_imagenetc_wild_mixshifts.yaml`.
-
-### Table 5: Cityscapes to ACDC segmentation
-
-Backbone: Cityscapes-pretrained SegFormer-B5. Protocol: batch size 1,
-Fog/Night/Rain/Snow stream repeated for 10 rounds, with online error and mIoU.
-
-```bash
-METHODS=atlas bash scripts/run_table5_segmentation_acdc.sh
-```
-
-Set `ACDC_ROOT`, `SEGFORMER_MODEL`, `GPU`, and `MAX_SAMPLES` before running.
-The runner writes JSON summaries under
-`results/table5_segformer_acdc_surgeon_cotta/`.
-
-### Table 6: Prompt-only VLM adaptation
-
-Backbone: CLIP ViT-B/16. The protocol is episodic: prompt context and optimizer
-state reset for every test instance. Run zero-shot and CoOp initializations
-separately:
-
-```bash
-METHODS=atlas PROMPT_SETTINGS=zs bash scripts/run_table6_vlm_tta.sh --method atlas --mode zs
-METHODS=atlas PROMPT_SETTINGS=coop bash scripts/run_table6_vlm_tta.sh --method atlas --mode coop
-```
-
-Set `COOP_CKPT` for the CoOp run. Outputs are stored under
-`results/table6_vlm_tta/`.
-
-### Table 7: Component ablations
-
-The wrapper runs the released method's role-level ablations on continual
-ImageNet-C ViT-B/16. It does not require comparison source code for the
-method-only rows, but the shell environment must provide the configured Python
-dependencies.
-
-```bash
-bash scripts/ablation_table7.sh results/table7_release
-```
-
-### Table 8: Selected-entity normalization ablation
-
-```bash
-bash scripts/run_table5_sane_ablation.sh
-```
-
-This uses the Cityscapes to ACDC segmentation protocol and writes the summary
-to `results/table5_sane_ablation/`.
-
-## Expected Outputs
-
-Each runner writes JSON result records with the dataset, method, protocol,
-seed/order, per-condition metrics, and aggregate accuracy or mIoU. Summary
-CSV/Markdown files are generated alongside the JSON records when the full
-wrapper is used. Exact values depend on the downloaded checkpoint versions,
-hardware, and the documented seed/order protocol.
-
-## Comparison-Method Provenance
-
-Comparison implementations are not copied into this repository. Use the
-official URLs and revisions in `THIRD_PARTY_PROVENANCE.md`, inspect their
-current licenses, and keep their checkouts outside this repository. A missing
-or incompatible comparison implementation should be reported as unavailable,
-not replaced with an unverified local implementation.
-
-## Hardware and Runtime Notes
-
-Full ImageNet-C and VLM runs require a CUDA GPU and substantial disk space for
-the datasets and checkpoints. Segmentation and prompt adaptation have separate
-environment requirements documented in their YAML files and runner messages.
-Use `--max-batches 1` or the runner's sample cap to validate paths before a
-long evaluation.
-
-## Troubleshooting
-
-- `FileNotFoundError`: check the configured data or checkpoint path and confirm
-  that the official resource has been downloaded.
-- Missing comparison module: obtain the external checkout listed in
-  `THIRD_PARTY_PROVENANCE.md`, or run only the released method.
-- CUDA out of memory: lower the configured batch size and record the change in
-  the result metadata.
-- Reproducibility differences: verify the checkpoint revision, seed, corruption
-  order, reset policy, and package versions before comparing numbers.
-
-## License
-
-The project files in this repository are released under the repository license.
-Third-party datasets, model weights, and comparison implementations remain
-under their own licenses and are not relicensed here.
-
-## Citation
-
-Please cite the associated method publication and the original dataset,
-backbone, and comparison-method papers when using this repository. The public
-release intentionally keeps this README focused on the implementation and
-reproduction instructions.
-
-## Security and Privacy
-
-Never commit API keys, access tokens, passwords, SSH keys, private paths,
-personal metadata, experiment logs, unpublished plans, submission material,
-or internal analysis. Review `git status` and the staged file list before every
-push. The `.gitignore` is intentionally conservative, but it is not a
-substitute for reviewing the files that will be published.
+Check the repository license and the accompanying paper for the applicable
+terms. Please cite the associated work when using this implementation.

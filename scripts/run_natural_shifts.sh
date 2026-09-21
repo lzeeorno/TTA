@@ -13,8 +13,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/run_common.sh"
 cd "$PROJECT_ROOT"
 
-COMMON_METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "deyo" "rotta" "triad" "triad_f3" "atlas")
-VIT_EXTRA_METHODS=("foa")
+COMMON_METHODS=("source" "atlas")
+VIT_EXTRA_METHODS=()
 GN_METHODS=("${COMMON_METHODS[@]}")
 VIT_METHODS=("${COMMON_METHODS[@]}" "${VIT_EXTRA_METHODS[@]}")
 SEEDS=(1997 2048 2077)
@@ -99,8 +99,8 @@ VIT_RESULTS_DIRS=(
     "results/imagenet_sketch_vit_base_patch16_224"
 )
 
-GN_METHODS_CSV="source,tent,eata,sar,cotta,lcotta,adadem,surgeon,deyo,rotta,triad,triad_f3,atlas"
-VIT_METHODS_CSV="source,tent,eata,sar,cotta,lcotta,adadem,surgeon,deyo,rotta,triad,triad_f3,atlas,foa"
+GN_METHODS_CSV="source,atlas"
+VIT_METHODS_CSV="source,atlas"
 
 for results_dir in "${GN_RESULTS_DIRS[@]}"; do
     echo "[Summary] ${results_dir}/natural_shifts_summary.{csv,md}"

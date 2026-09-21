@@ -12,9 +12,9 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/run_common.sh"
 cd "$PROJECT_ROOT"
 
-METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "foa" "deyo" "atlas")
+METHODS=("source" "atlas")
 # FOA BS=1 is enabled via a project-side singleton-batch extension in code/baselines/foa.py.
-BS1_METHODS=("source" "tent" "eata" "sar" "cotta" "lcotta" "adadem" "surgeon" "foa" "deyo" "atlas")
+BS1_METHODS=("source" "atlas")
 DEFAULT_BS1_SEEDS=(1997)
 DEFAULT_SHIFT_SEEDS=(1997 2048 2077)
 REQUESTED_SEED=""
