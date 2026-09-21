@@ -108,7 +108,10 @@ those generated files are ignored by Git.
 
 The following matrix is the shortest route through the eight reported
 protocol groups. The wrappers run the source reference and the released
-adapter by default; no comparison source is required for these commands.
+adapter by default for Tables 1-5 and 7-8. Table 6 is different: its wrapper
+uses an external vision-language host and an external DEM/AdaDEM checkout,
+even when the requested rows are limited to the source reference and the
+released adapter. Those checkouts are never committed here.
 
 | Table | Dataset / backbone | Protocol and configuration | Command | Seeds / orders | Expected output and metric | Hardware / runtime |
 |---|---|---|---|---|---|---|
@@ -117,7 +120,7 @@ adapter by default; no comparison source is required for these commands.
 | 3 | ImageNet-A/R/V2/Sketch / ResNet-50-GN and ViT-B/16 | Natural shifts; corresponding `configs/imagenet_*_vit.yaml` files | `bash scripts/run_natural_shifts.sh` | Seeds 1997/2048/2077 for each shift | `results/imagenet_*`; top-1 accuracy per shift and mean | CUDA GPU; hours for all datasets and seeds |
 | 4 | ImageNet-C / ViT-B/16 | Batch-size-one, label-shift, and mixed-shift streams; `configs/vit_imagenetc_wild_*.yaml` | `bash scripts/run_imagenetc_wild_vit.sh` | BS=1 seed 1997; label/mixed-shift seeds 1997/2048/2077 | `results/imagenetc_vit_*_wild*/`; mean top-1 accuracy and per-shift summaries | CUDA GPU; hours, dominated by the batch-size-one stream |
 | 5 | ACDC / Cityscapes-pretrained SegFormer-B5 | Ten-round fog/night/rain/snow continual stream; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_segmentation_acdc.sh` | Seed 1997; 10 condition rounds; timestamps 1/4/7/10 | `results/table5_segformer_acdc_surgeon_cotta/`; mIoU and online error | CUDA GPU with substantial memory; hours, depending on sample cap |
-| 6 | ImageNet-A/V/R/K / CLIP ViT-B/16 | Episodic prompt-context adaptation; `configs/table6_vlm_tta.yaml` | `bash scripts/run_table6_vlm_tta.sh` | Seed 1; zero-shot and CoOp prompt settings; episodic reset per instance | `results/table6_vlm_tta/`; top-1 accuracy by prompt setting and test set | CUDA GPU and CLIP/CoOp weights; hours for all test sets |
+| 6 | ImageNet-A/V/R/K / CLIP ViT-B/16 | Episodic prompt-context adaptation; `configs/table6_vlm_tta.yaml`; external host checkouts required | `bash scripts/run_table6_vlm_tta.sh` | Seed 1; zero-shot and CoOp prompt settings; episodic reset per instance | `results/table6_vlm_tta/`; top-1 accuracy by prompt setting and test set | CUDA GPU and CLIP/CoOp weights; hours for all test sets |
 | 7 | ImageNet-C / ViT-B/16 | Role-level continual ablations; `configs/vit_imagenetc_continual.yaml` | `bash scripts/ablation_table7.sh` | Default seed 1997; continual order configured by the wrapper | Selected result directory; mean top-1 accuracy and ablation manifest | CUDA GPU; hours for the complete ablation set |
 | 8 | ACDC / SegFormer-B5 | Selected-entity normalization ablation; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_sane_ablation.sh` | Seed 1997; 10 condition rounds; timestamps 1/4/7/10 | `results/table5_sane_ablation/`; mIoU and online error | CUDA GPU; hours, depending on sample cap |
 
@@ -127,6 +130,25 @@ small-sample smoke run should be completed before a full sweep. The paper's
 multi-seed/order aggregates require repeating the corresponding public runner
 with the listed seeds or orders; a default one-seed invocation is not itself a
 claim to reproduce an aggregate mean.
+
+### Table 6 external checkouts
+
+The Table 6 wrapper expects user-managed checkouts at the paths below. Pin the
+recorded revisions before running and keep both directories ignored by Git:
+
+```bash
+git clone https://github.com/TomSheng21/tta-vlm.git code/baselines/tta-vlm-main
+git -C code/baselines/tta-vlm-main checkout bcc735fe49cbd2ab5b683781c41c66e1d3f78589
+git clone https://github.com/HAIV-Lab/DEM.git code/baselines/DEM-main
+git -C code/baselines/DEM-main checkout dee84bf9304fb816c48d9ed8763a8ebf6f902ade
+```
+
+The VLM repository does not declare a license file at the pinned revision;
+review its terms before use. The public release also omits the project-specific
+host modifications used by the historical `source`, `adadem`, and released
+adapter rows. A clean upstream checkout is therefore a dependency anchor, not
+an assertion of standalone Table 6 reproducibility; the runner stops with a
+preflight explanation when those integration entry points are absent.
 
 For a full comparison table, prepare the external repositories listed in
 `THIRD_PARTY_PROVENANCE.md` and pass their paths through the documented wrapper

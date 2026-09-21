@@ -244,6 +244,57 @@ if [ "${TABLE6_PARSE_ONLY:-0}" = "1" ]; then
   exit 0
 fi
 
+require_external_file() {
+  local path="$1"
+  local label="$2"
+  if [ ! -f "$path" ]; then
+    echo "[ERROR] Missing external ${label}: ${path}" >&2
+    echo "[ERROR] Table 6 does not vendor comparison code. See THIRD_PARTY_PROVENANCE.md and README.md." >&2
+    exit 1
+  fi
+}
+
+# The public release intentionally leaves the VLM host and DEM/AdaDEM source
+# outside Git. Check the interface boundary before importing either tree so a
+# missing or unpatched checkout produces an actionable message.
+require_external_file "$BASELINE_DIR/instance_tta.py" "VLM episodic host"
+require_external_file "$BASELINE_DIR/online_tta.py" "VLM online host"
+require_external_file "$BASELINE_DIR/data/datautils.py" "VLM dataset loader"
+require_external_file "$BASELINE_DIR/clip/custom_clip.py" "VLM CLIP loader"
+if ! grep -Eq "resolve_dataset_spec" "$BASELINE_DIR/data/datautils.py"; then
+  echo "[ERROR] The VLM checkout lacks the project integration hook resolve_dataset_spec." >&2
+  echo "[ERROR] A clean upstream clone is not sufficient for this historical Table 6 wrapper; see README.md." >&2
+  exit 1
+fi
+
+for requested_method in "${REQUESTED_METHODS[@]}"; do
+  case "$requested_method" in
+    source|atlas)
+      if ! grep -Eq "${requested_method}" "$BASELINE_DIR/instance_tta.py"; then
+        echo "[ERROR] The VLM checkout lacks the '${requested_method}' integration entry point." >&2
+        echo "[ERROR] This project-specific host extension is not redistributed; see README.md." >&2
+        exit 1
+      fi
+      ;;
+    adadem)
+      if ! grep -Eq "adadem" "$BASELINE_DIR/instance_method/tpt.py"; then
+        echo "[ERROR] The VLM checkout lacks the AdaDEM integration entry point." >&2
+        echo "[ERROR] This project-specific host extension is not redistributed; see README.md." >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
+
+for requested_method in "${REQUESTED_METHODS[@]}"; do
+  case "$requested_method" in
+    adadem|atlas)
+      require_external_file "$PROJECT_ROOT/code/baselines/DEM-main/adadem.py" "DEM/AdaDEM implementation"
+      break
+      ;;
+  esac
+done
+
 NEEDS_COOP=0
 for prompt_setting in "${REQUESTED_PROMPT_SETTINGS[@]}"; do
   if [ "$prompt_setting" = "coop" ]; then

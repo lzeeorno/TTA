@@ -88,7 +88,11 @@ docs/rebuttal/
 *.sha256
 *.sha256sum
 
-# Local external baseline checkouts are documented, not vendored here.
+# Local external baseline checkouts are documented, not vendored here. Keep
+# every checkout under this directory ignored so a local clone cannot be
+# staged accidentally after following the reproduction notes.
+code/baselines/*/
+!code/baselines/README.md
 code/baselines/SURGEON-master/
 code/baselines/tta-vlm-main/
 

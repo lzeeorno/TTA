@@ -6,6 +6,13 @@ that a researcher can obtain them directly from the official repositories and
 review their current licenses. The release itself contains no third-party
 baseline files, nested `.git` directories, datasets, checkpoints, or logs.
 
+The revisions below are provenance anchors for the local historical snapshot,
+not a grant to redistribute those files. In particular, the VLM host checkout
+was locally extended with project-specific dispatch and data-path changes for
+the historical Table 6 runs. Those changes are not included here. A clean
+checkout of the upstream VLM repository therefore does not by itself provide
+the complete Table 6 matrix; see the README and the runner preflight message.
+
 | Method | Official repository | Local revision | License / redistribution status | Local wrapper |
 |---|---|---|---|---|
 | Tent | https://github.com/DequanWang/tent | `e9e926a668d85244c66a6d5c006efbd2b82e83e8` | MIT; external checkout required | historical `code/main.py` import |
@@ -16,7 +23,8 @@ baseline files, nested `.git` directories, datasets, checkpoints, or logs.
 | RoTTA | https://github.com/BIT-DA/RoTTA | `67e34c900cdd355fc07e55edd4c577ea7b8ebcc9` | MIT; external checkout required | historical `code/main.py` import |
 | FOA | https://github.com/mr-eggplant/FOA | local snapshot has no usable Git revision | NTUITIVE non-commercial license has a conflicting no-distribution clause; external checkout only | historical `code/main.py` import |
 | SURGEON | https://github.com/chenjoya/SURGEON | local snapshot has no usable Git revision | No license file in inspected snapshot; external checkout only | historical `code/main.py` import |
-| VLM-TTA | https://github.com/mala-lab/VLM-TTA | local snapshot has no usable Git revision | No license file in inspected snapshot; external checkout only | `code/atlas/vlm_instance.py` import path |
+| AdaDEM / DEM | https://github.com/HAIV-Lab/DEM | `dee84bf9304fb816c48d9ed8763a8ebf6f902ade` | MIT; external checkout required | `code/atlas/vlm_instance.py` and VLM TTA host import path |
+| VLM-TTA host | https://github.com/TomSheng21/tta-vlm | `bcc735fe49cbd2ab5b683781c41c66e1d3f78589` | No license file declared by the repository at this revision; treat as external/all-rights-reserved and review before use | `scripts/run_table6_vlm_tta.sh`, `code/atlas/vlm_prompt_ensemble.py` |
 
 For all comparison methods, clone the official repository yourself after
 checking its current license and adapt the local import paths as needed. The
