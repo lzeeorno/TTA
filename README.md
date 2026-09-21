@@ -110,20 +110,23 @@ The following matrix is the shortest route through the eight reported
 protocol groups. The wrappers run the source reference and the released
 adapter by default; no comparison source is required for these commands.
 
-| Table | Dataset / backbone | Protocol and configuration | Command | Expected output and metric | Hardware / runtime |
-|---|---|---|---|---|---|
-| 1 | CIFAR-100-C / ResNeXt-29 | Continual severity-5 stream; `configs/cifar100c_continual.yaml` | `bash scripts/run_cifar100c_continual.sh` | `results/cifar100c_resnext29_continual/`; top-1 accuracy | CUDA GPU; minutes per seed, hardware dependent |
-| 2 | ImageNet-C / GN ResNet-50 and ViT-B/16 | Standard and continual corruption streams; `configs/imagenetc*.yaml`, `configs/vit_imagenetc*.yaml` | Run `scripts/run_imagenetc_all*.sh` and `scripts/run_imagenetc_continual*.sh` | Matching `results/imagenetc_*` directories; mean top-1 accuracy | CUDA GPU with model-appropriate batch size; typically hours for full 15-corruption sweeps |
-| 3 | ImageNet-A/R/V2/Sketch / ResNet-50-GN and ViT-B/16 | Natural shifts; corresponding `configs/imagenet_*_vit.yaml` files | `bash scripts/run_natural_shifts.sh` | `results/imagenet_*`; top-1 accuracy per shift and mean | CUDA GPU; hours for all datasets and seeds |
-| 4 | ImageNet-C / ViT-B/16 | Batch-size-one, label-shift, and mixed-shift streams; `configs/vit_imagenetc_wild_*.yaml` | `bash scripts/run_imagenetc_wild_vit.sh` | `results/imagenetc_vit_*_wild*/`; mean top-1 accuracy and per-shift summaries | CUDA GPU; hours, dominated by the batch-size-one stream |
-| 5 | ACDC / Cityscapes-pretrained SegFormer-B5 | Ten-round fog/night/rain/snow continual stream; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_segmentation_acdc.sh` | `results/table5_segformer_acdc_surgeon_cotta/`; mIoU and online error | CUDA GPU with substantial memory; hours, depending on sample cap |
-| 6 | ImageNet-A/V/R/K / CLIP ViT-B/16 | Episodic prompt-context adaptation; `configs/table6_vlm_tta.yaml` | `bash scripts/run_table6_vlm_tta.sh` | `results/table6_vlm_tta/`; top-1 accuracy by prompt setting and test set | CUDA GPU and CLIP/CoOp weights; hours for all test sets |
-| 7 | ImageNet-C / ViT-B/16 | Role-level continual ablations; `configs/vit_imagenetc_continual.yaml` | `bash scripts/ablation_table7.sh` | Selected result directory; mean top-1 accuracy and ablation manifest | CUDA GPU; hours for the complete ablation set |
-| 8 | ACDC / SegFormer-B5 | Selected-entity normalization ablation; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_sane_ablation.sh` | `results/table5_sane_ablation/`; mIoU and online error | CUDA GPU; hours, depending on sample cap |
+| Table | Dataset / backbone | Protocol and configuration | Command | Seeds / orders | Expected output and metric | Hardware / runtime |
+|---|---|---|---|---|---|---|
+| 1 | CIFAR-100-C / ResNeXt-29 | Continual severity-5 stream; `configs/cifar100c_continual.yaml` | `bash scripts/run_cifar100c_continual.sh` | Seed 1997; 3 fixed corruption orders | `results/cifar100c_resnext29_continual/`; top-1 accuracy | CUDA GPU; minutes per seed, hardware dependent |
+| 2 | ImageNet-C / GN ResNet-50 and ViT-B/16 | Standard and continual corruption streams; `configs/imagenetc*.yaml`, `configs/vit_imagenetc*.yaml` | Run `scripts/run_imagenetc_all*.sh` and `scripts/run_imagenetc_continual*.sh` | Standard seeds 1997/2048/2077; continual runner defaults to seed 1997/order 0; repeat explicitly for other reported orders | Matching `results/imagenetc_*` directories; mean top-1 accuracy | CUDA GPU with model-appropriate batch size; typically hours for full 15-corruption sweeps |
+| 3 | ImageNet-A/R/V2/Sketch / ResNet-50-GN and ViT-B/16 | Natural shifts; corresponding `configs/imagenet_*_vit.yaml` files | `bash scripts/run_natural_shifts.sh` | Seeds 1997/2048/2077 for each shift | `results/imagenet_*`; top-1 accuracy per shift and mean | CUDA GPU; hours for all datasets and seeds |
+| 4 | ImageNet-C / ViT-B/16 | Batch-size-one, label-shift, and mixed-shift streams; `configs/vit_imagenetc_wild_*.yaml` | `bash scripts/run_imagenetc_wild_vit.sh` | BS=1 seed 1997; label/mixed-shift seeds 1997/2048/2077 | `results/imagenetc_vit_*_wild*/`; mean top-1 accuracy and per-shift summaries | CUDA GPU; hours, dominated by the batch-size-one stream |
+| 5 | ACDC / Cityscapes-pretrained SegFormer-B5 | Ten-round fog/night/rain/snow continual stream; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_segmentation_acdc.sh` | Seed 1997; 10 condition rounds; timestamps 1/4/7/10 | `results/table5_segformer_acdc_surgeon_cotta/`; mIoU and online error | CUDA GPU with substantial memory; hours, depending on sample cap |
+| 6 | ImageNet-A/V/R/K / CLIP ViT-B/16 | Episodic prompt-context adaptation; `configs/table6_vlm_tta.yaml` | `bash scripts/run_table6_vlm_tta.sh` | Seed 1; zero-shot and CoOp prompt settings; episodic reset per instance | `results/table6_vlm_tta/`; top-1 accuracy by prompt setting and test set | CUDA GPU and CLIP/CoOp weights; hours for all test sets |
+| 7 | ImageNet-C / ViT-B/16 | Role-level continual ablations; `configs/vit_imagenetc_continual.yaml` | `bash scripts/ablation_table7.sh` | Default seed 1997; continual order configured by the wrapper | Selected result directory; mean top-1 accuracy and ablation manifest | CUDA GPU; hours for the complete ablation set |
+| 8 | ACDC / SegFormer-B5 | Selected-entity normalization ablation; `configs/table5_segformer_acdc.yaml` | `bash scripts/run_table5_sane_ablation.sh` | Seed 1997; 10 condition rounds; timestamps 1/4/7/10 | `results/table5_sane_ablation/`; mIoU and online error | CUDA GPU; hours, depending on sample cap |
 
-For every group, record the YAML revision, checkpoint path, seed, corruption
-order, batch size, and any sample cap together with the generated JSON. A
-one-batch or small-sample smoke run should be completed before a full sweep.
+For every table, record the YAML revision, checkpoint path, seed/order, batch
+size, and any sample cap together with the generated JSON. A one-batch or
+small-sample smoke run should be completed before a full sweep. The paper's
+multi-seed/order aggregates require repeating the corresponding public runner
+with the listed seeds or orders; a default one-seed invocation is not itself a
+claim to reproduce an aggregate mean.
 
 For a full comparison table, prepare the external repositories listed in
 `THIRD_PARTY_PROVENANCE.md` and pass their paths through the documented wrapper
