@@ -1,0 +1,103 @@
+
+\begin{wraptable}{r}{0.60\columnwidth}
+\vspace{-1.2\baselineskip}
+\centering
+\normalsize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.05}
+\caption{\textbf{ImageNet-C under standard and continual adaptation.}
+Standard columns report mean $\pm$ std across three random seeds; continual columns report mean $\pm$ std across three random corruption orders. Unsupported entries are excluded from best-baseline margins; collapse entries are raw official-scope reproductions and are not used as the primary comparison. Best in \textbf{bold}; second-best \underline{underlined}.}
+\label{tab:l2}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+& \multicolumn{2}{c}{ResNet-50-GN} & \multicolumn{2}{c}{ViT-B/16} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+Method & Standard & Continual & Standard & Continual \\
+\midrule
+Source & \res{31.44}{0.00} & \res{31.44}{0.00} & \res{39.83}{0.00} & \res{39.83}{0.00} \\
+Tent (ICLR'21) & \res{32.02}{0.00} & \res{21.84}{1.38} & \res{54.62}{0.03} & \res{49.02}{0.14} \\
+EATA (ICML'22) & \res{41.89}{0.02} & \ulres{34.82}{0.57} & \res{58.25}{1.09} & \res{18.04}{8.68} \\
+SAR (ICLR'23) & \res{35.84}{0.00} & \res{32.30}{8.20} & \res{54.57}{0.03} & \res{55.88}{0.58} \\
+CoTTA (CVPR'22) & \res{31.49}{0.00} & \res{31.44}{0.03} & \res{40.25}{0.00} & \res{42.10}{0.09} \\
+Lifelong TTA (NeurIPS'25) & \res{40.36}{0.00} & \res{34.02}{0.79} & \ulres{60.18}{0.10} & \res{36.73}{0.20} \\
+AdaDEM (NeurIPS'25) & \res{32.21}{0.00} & \res{30.72}{0.29} & \res{58.94}{1.83} & \ulres{64.11}{0.43} \\
+FOA (ICML'24) & \multicolumn{1}{c}{\pending} & \multicolumn{1}{c}{\pending} & \res{48.98}{0.18} & \res{48.56}{0.34} \\
+DeYO (ICLR'24) & \ulres{43.79}{0.01} & \res{23.98}{13.91} & \res{60.00}{0.59} & \res{56.52}{0.40} \\
+\midrule
+\rowcolor{gray!8}
+\textbf{\method{}} & \best{48.40}{0.07} & \best{45.84}{0.08} & \best{60.21}{0.03} & \best{65.14}{0.05} \\
+\bottomrule
+\end{tabular}}
+\vspace{-0.8\baselineskip}
+\end{wraptable}
+
+% \begin{table*}[t]
+% \centering
+% \small
+% \setlength{\tabcolsep}{6pt}
+% \renewcommand{\arraystretch}{1.08}
+% \caption{\textbf{ImageNet-C under standard and continual adaptation.}
+% Results are reported as mean \(\pm\) std across three random orders. The best result in each column is highlighted in \textbf{bold}, and the second-best is \underline{underlined}.}
+% \label{tab:l2}
+% \begin{tabular}{@{}lcccc@{}}
+% \toprule
+% & \multicolumn{2}{c}{ResNet-50-GN} & \multicolumn{2}{c}{ViT-B/16} \\
+% \cmidrule(lr){2-3}\cmidrule(lr){4-5}
+% Method & Standard & Continual & Standard & Continual \\
+% \midrule
+% Source & \res{31.44}{0.00} & \res{31.44}{0.00} & \res{39.83}{0.00} & \res{39.83}{0.00} \\
+% Tent (ICLR'21) & \res{32.02}{0.00} & \res{21.84}{1.38} & \res{54.62}{0.03} & \res{49.02}{13.95} \\
+% EATA (ICML'22) & \res{41.89}{0.02} & \ulres{34.82}{0.57} & \res{58.25}{1.09} & \res{18.04}{8.68} \\
+% SAR (ICLR'23) & \res{35.84}{0.00} & \res{32.30}{8.20} & \res{54.57}{0.03} & \res{55.88}{0.58} \\
+% CoTTA (CVPR'22) & \res{31.49}{0.00} & \res{31.44}{0.03} & \res{40.25}{0.00} & \res{42.10}{0.09} \\
+% Lifelong TTA (NeurIPS'25) & \res{40.36}{0.00} & \res{34.02}{0.79} & \ulres{60.18}{0.10} & \res{36.73}{0.20} \\
+% AdaDEM (NeurIPS'25) & \res{32.21}{0.00} & \res{30.72}{0.29} & \res{58.94}{1.83} & \ulres{64.11}{0.43} \\
+% SURGEON (CVPR'25) & \res{0.18}{0.01} & \res{0.13}{0.01} & \res{5.03}{0.57} & \res{3.17}{2.05} \\
+% FOA (ICML'24) & \multicolumn{1}{c}{\pending} & \multicolumn{1}{c}{\pending} & \res{48.98}{0.18} & \res{48.56}{0.34} \\
+% DeYO (ICLR'24) & \ulres{43.79}{0.01} & \res{23.98}{13.91} & \res{60.00}{0.59} & \res{56.52}{0.40} \\
+% \midrule
+% \rowcolor{gray!8}
+% \textbf{\method{}} & \best{48.40}{0.07} & \best{45.84}{0.08} & \best{60.21}{0.03} & \best{65.14}{0.05} \\
+% \bottomrule
+% \end{tabular}
+% \end{table*}
+% % \begin{table}[htbp]
+% % \centering
+% % \small
+% % \caption{ImageNet-C under standard and continual adaptation. Entries marked with - denote absent or invalid reproductions in the current artifact set.}
+% % \label{tab:l2}
+% % \resizebox{\textwidth}{!}{%
+% % \begin{tabular}{llcc|llcc}
+% % \toprule
+% % Backbone & Method & Standard & Continual & Backbone & Method & Standard & Continual \\
+% % \midrule
+% % \multirow{12}{*}{ResNet-50-GN}
+% % & Source & 31.44 & 31.44
+% % & \multirow{12}{*}{ViT-B/16}
+% % & Source & 39.83 & 39.83 \\
+% % & Tent (ICLR'21) & 32.02 & 21.84
+% % && Tent (ICLR'21) & 54.62 & 49.02 \\
+% % & EATA (ICML'22) & 41.89 & 34.82
+% % && EATA (ICML'22) & 58.25 & 18.04 \\
+% % & SAR (ICLR'23) & 35.84 & 32.30
+% % && SAR (ICLR'23) & 54.57 & 55.88 \\
+% % & CoTTA (CVPR'22) & 31.49 & 31.44
+% % && CoTTA (CVPR'22) & 40.25 & 42.10 \\
+% % & Lifelong TTA (NeurIPS'25) & 40.36 & 34.02
+% % && Lifelong TTA (NeurIPS'25) & 60.18 & 36.73 \\
+% % & AdaDEM (NeurIPS'25) & 32.21 & 30.72
+% % && AdaDEM (NeurIPS'25) & 58.94 & 64.11 \\
+% % & SURGEON (CVPR'25) & 0.18 & 0.13
+% % && SURGEON (CVPR'25) & 5.03 & 3.17 \\
+% % & FOA (ICML'24) & - & -
+% % && FOA (ICML'24) & 48.98 & 48.56 \\
+% % & DeYO (ICLR'24) & 43.79 & 23.98
+% % && DeYO (ICLR'24) & 60.00 & 56.52 \\
+% % % & RoTTA (CVPR'23) & 31.44 & 31.44
+% % % && RoTTA (CVPR'23) & 39.83 & 39.83 \\
+% % & \method{} & 31.68 & 31.95
+% % && \method{} & 41.41 & 42.43 \\
+% % \bottomrule
+% % \end{tabular}}
+% % \end{table}

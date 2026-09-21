@@ -1,0 +1,46 @@
+# ImageNet-Sketch with ViT-B/16
+# Natural distribution shift dataset, 1000 classes
+
+_BASE_: default.yaml
+
+model:
+  backbone: vit_base_patch16_224
+
+dataset:
+  name: imagenet_sketch
+  data_root: ./data/imagenet-sketch
+  imagenet_val_root: ./data/imagenet/val
+  batch_size: 118
+  num_workers: 8
+  dataset_type: natural_shift
+
+optim:
+  optimizer: sgd
+  lr: 0.00184375
+  momentum: 0.9
+
+model_params:
+  adapt_params: ln
+
+atlas:
+  vit_ln:
+    optimizer: sgd
+    lr: 0.00184375
+    momentum: 0.9
+    param_scope: deyo_vit
+    natural_shift:
+      enabled: true
+      entropy_filter_scale: 0.5
+      entropy_weight_margin_scale: 0.4
+      plpd_threshold: 0.15
+      patch_len: 4
+      reweight_ent: 1.0
+      reweight_plpd: 1.0
+      source_anchor_weight: 0.0
+      topology_weight: 0.05
+
+tta:
+  reset_each_corruption: false
+
+logging:
+  results_dir: ./results

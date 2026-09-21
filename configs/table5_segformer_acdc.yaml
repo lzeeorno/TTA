@@ -1,0 +1,111 @@
+experiment:
+  name: table5_segformer_acdc
+  task: semantic_segmentation_tta
+  protocol: table5_surgeon_cotta_v1
+  legacy_protocol: table5_unified_repo_v1
+  protocol_policy: surgeon_cotta_aligned_protocol
+  protocol_notes:
+    - Align SegFormer-B5 Cityscapes-to-ACDC with the SURGEON/CoTTA setup.
+    - Use ACDC train split as the unlabeled test-time stream, 400 images per condition.
+    - Use Fog -> Night -> Rain -> Snow repeated 10 rounds and report timestamps 1, 4, 7, 10.
+    - SURGEON reports online error; this repo stores both mIoU and online_error.
+
+dataset:
+  name: acdc
+  root: data/acdc
+  split: train
+  conditions: [fog, night, rain, snow]
+  continual_rounds: 10
+  sequence_order: [fog, night, rain, snow]
+  rgb_root: data/acdc/rgb_anon_trainvaltest/rgb_anon
+  gt_root: data/acdc/gt_trainval/gt
+
+model:
+  name_or_path: models/segformer/segformer-b5-cityscapes
+  hf_fallback: nvidia/segformer-b5-finetuned-cityscapes-1024-1024
+  backbone: segformer-b5
+  num_classes: 19
+  source_domain: cityscapes_pretrained
+  models_root: models/segformer
+
+evaluation:
+  metric: online_error_and_miou
+  ignore_index: 255
+  report_timestamps: [1, 4, 7, 10]
+  primary_metric: mean_online_error
+  result_schema:
+    required_fields:
+      - protocol
+      - split
+      - rounds
+      - report_timestamps
+      - primary_timestamp
+      - input_width
+      - input_height
+      - normalization
+      - samples_per_condition
+      - miou
+      - online_error
+      - miou_by_timestamp
+      - online_error_by_timestamp
+      - mean_online_error
+    metric_contract: online_error = 100 - miou for each reported condition/timestamp
+
+runtime:
+  batch_size: 1
+  input_width: 960
+  input_height: 540
+  image_size: null
+  normalization:
+    type: imagenet
+    mean: [0.485, 0.456, 0.406]
+    std: [0.229, 0.224, 0.225]
+  seed: 1997
+  gpu: 0
+  results_root: results/table5_segformer_acdc_surgeon_cotta
+  legacy_results_root: results/table5_segformer_acdc
+  logs_root: logs
+  conda_env: sata
+
+methods:
+  local_supported:
+    source:
+      runner: code/segmentation/run_acdc_segformer_table5.py
+      status: local_supported
+    tent:
+      runner: code/segmentation/run_acdc_segformer_table5.py
+      status: local_supported
+    atlas:
+      runner: code/segmentation/run_acdc_segformer_table5.py
+      status: local_supported
+      method_variant: full
+  external_adaptation:
+    cotta:
+      status: external_adaptation
+      adapter_contract: scripts/table5_external_adapters/cotta.sh
+      note: Official ACDC SegFormer code is referenced by CoTTA but is not vendored in this repo.
+    svdp:
+      status: external_adaptation
+      adapter_contract: scripts/table5_external_adapters/svdp.sh
+      note: Public method exists, but no local integration is shipped in this repo yet.
+    hybrid_tta:
+      status: external_adaptation
+      adapter_contract: scripts/table5_external_adapters/hybrid_tta.sh
+      note: Public method exists, but no local integration is shipped in this repo yet.
+  unavailable:
+    vdp:
+      status: unavailable
+      note: No verified local SegFormer-B5 to ACDC adapter is present in this repo.
+    tca:
+      status: unavailable
+      note: No verified local ACDC SegFormer-B5 protocol was found in this repo.
+
+optimizer:
+  tent:
+    type: Adam
+    lr: 1e-5
+    weight_decay: 0.0
+  atlas:
+    type: Adam
+    lr: 1e-5
+    weight_decay: 0.0

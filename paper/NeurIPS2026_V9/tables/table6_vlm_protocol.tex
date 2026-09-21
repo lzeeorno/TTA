@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\caption{Protocol metadata for the VLM comparison. ``Reset'' means prompt and optimizer state are restored for each test instance. Source ensemble is used only where the method explicitly requests it.}
+\label{tab:vlm_protocol}
+\small
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+Method & Runtime & Reset & Trainable parameters & Views & Source ensemble \\
+\midrule
+Source & episodic eval. & -- & none & original & optional prompt templates \\
+TPT & episodic & yes & prompt context & augmented & no \\
+AdaDEM & episodic & yes & prompt context & augmented & no \\
+ATLAS-Core & episodic & yes & prompt context & selected augmented & yes \\
+ATLAS-Full & episodic & yes & prompt context & original + augmented & yes \\
+TDA & online & no & cache state & original & no \\
+\bottomrule
+\end{tabular}}
+\end{table}

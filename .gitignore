@@ -1,0 +1,91 @@
+# Local datasets, checkpoints, and generated experiment artifacts.
+data/
+# Model checkpoints and caches. The source loader under code/models/ is public;
+# binary weights remain excluded by the extensions below and by these paths.
+models/
+code/models/*/weights/
+code/models/*/checkpoints/
+weights/
+results/
+logs/
+audit/
+release_audit/
+private/
+secrets/
+credentials/
+*.pt
+*.pth
+*.ckpt
+*.pickle
+*.safetensors
+*.bin
+*.onnx
+*.sqlite
+*.sqlite3
+*.db
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/
+
+# Credentials and personal/private metadata. Never commit these even when
+# they are created under a new filename.
+.env
+.env.*
+*api_key*
+*apikey*
+*access_token*
+*refresh_token*
+*auth_token*
+*token*
+*secret*
+*password*
+*credential*
+*private_key*
+*.pem
+*.key
+id_rsa
+id_ed25519
+*ssh*
+*cookie*
+*session*
+*personal*
+*private*
+*absolute_path*
+*home_path*
+
+# Internal planning, submission, experiment-search, and AI-workflow material.
+*codex*
+*gpt*
+*openai*
+*.jsonl
+*todo*
+*plan*
+*progress*
+*roadmap*
+*rebuttal*
+*submission*
+*reviewer*
+*experiment*
+*search_history*
+*trial*
+*failed*
+*sha256*
+*sha-256*
+*hash*
+*.sha256
+*.sha256sum
+
+# The manuscript's public experiment section is a paper artifact, not a
+# private experiment log.
+!paper/NeurIPS2026_V9/sections/experiments.tex
+
+# Local external baseline checkouts are documented, not vendored here.
+code/baselines/SURGEON-master/
+code/baselines/tta-vlm-main/
+
+# The public model-loader source is required by the runners; keep its files
+# visible to Git while the artifact patterns above continue to exclude weights.
+!code/models/

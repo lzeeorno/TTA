@@ -1,0 +1,49 @@
+\input{tables/table1a_cifar100c_continual}
+\section{Experiments and Results}
+
+\subsection{Experimental setup and five-level protocol}
+
+The evaluation follows a five-level protocol. Level 1 studies CIFAR-100-C and ImageNet-C under standard TTA, where the model resets between corruptions, and continual TTA, where one model processes the full stream without gradient reset~\citep{wang2021tent,wang2022cotta}. Both use the $15$ ImageNet-C corruption types at severity $5$~\citep{hendrycks2019imagenetc}. Level 2 tests natural shifts on ImageNet-A, ImageNet-R, ImageNet-V2, and ImageNet-Sketch with ViT-B/16~\citep{dosovitskiy2021vit,hendrycks2021imageneta,hendrycks2021manyfaces,recht2021imagenetv2}. Level 3 evaluates wild non-i.i.d. streams under label shift, mixed shifts, and batch-size-one inference, following WILDS~\citep{koh2021wilds}. Level 4 studies Cityscapes$\rightarrow$ACDC segmentation with SegFormer-B5~\citep{cordts2016cityscapes,sakaridis2021acdc,xie2021segformer}. Level 5 studies prompt-only adaptation for CLIP ViT-B/16~\citep{radford2021clip}. Classification and VLM experiments report top-1 accuracy; segmentation reports online error and mIoU. Means $\pm$ standard deviations are reported when available. Standard corruption runs use three random seeds; continual runs use three random corruption orders. The protocol isolates unreliable evidence, online drift, and entity-scale mismatch.
+
+\subsection{Level 1: Synthetic corruptions}
+
+\input{tables/table2_imagenetc}
+
+Synthetic corruptions test whether a TTA method can reject unsafe confidence while still adapting to degraded inputs. On CIFAR-100-C continual adaptation, Table~\ref{tab:l1a} shows \method{} at $68.8\pm0.2$, beating DeYO by $0.8$ points and EATA/AdaDEM by $1.7$. It is best on $11$ of $15$ corruptions, covering both photometric and structure-changing cases. Appendix~\ref{app:additional_cifar} reports the standard CIFAR-100-C protocol, where \method{} reaches $69.1\pm0.0$, $0.4$ points above SURGEON become new best method.
+
+ImageNet-C exposes the same reliability issue across backbones. In Table~\ref{tab:l2}, \method{} reaches $48.40\pm0.07$ on ResNet-50-GN standard adaptation and $45.84\pm0.08$ on ResNet-50-GN continual adaptation, improving over the strongest baselines by $4.61$ and $11.02$ points. On ViT-B/16, it reaches $60.21\pm0.03$ in the standard setting and $65.14\pm0.05$ in the continual setting, improving over the best baselines by $0.03$ and $1.03$ points. The small ViT standard margin and larger continual margins suggest that \method{} helps most when stream order and drift matter.
+
+\subsection{Level 2: Natural distribution shifts}
+\input{tables/table34_natural_wild}
+
+Natural shifts test transfer to semantic changes rather than synthetic corruptions. Table~\ref{tab:l3} reports ViT-B/16 results on ImageNet-A, ImageNet-R, ImageNet-V2, and ImageNet-Sketch. \method{} reaches $44.67\pm0.36$ average accuracy, $1.46$ points above DeYO. The gains are $3.15$ on ImageNet-A and $0.73$, $0.73$, and $1.00$ on the other three datasets. Because these labels are not induced by one corruption operator, the result supports the portability of \core{} rather than a benchmark-specific bias.
+
+\subsection{Level 3: Wild scenarios and batch-size-one streams}
+
+Wild streams remove common TTA stabilizers and expose failure cases of online self-supervision. Table~\ref{tab:l4} evaluates ImageNet-C wild scenarios under label shift, mixed shifts, and batch-size-one inference on ViT-B/16. \method{} reaches $57.47\pm0.41$, $61.67\pm0.41$, and $59.16\pm0.41$, exceeding the strongest stable compatible baselines by $0.81$, $0.66$, and $3.34$ points.
+
+The batch-size-one column is the clearest stress case because large-batch statistics disappear. There \method{} exceeds SAR, the strongest stable compatible baseline, without relying on unsupported or anomalous entries. This clarifies the role split: \core{} decides whether an entity updates the model, and \care{} bounds the semantic move after acceptance.
+Appendix~\ref{app:reproduction_notes} documents anomalous or unsupported baselines, their compatibility scope, default hyperparameters, and failure reasons. Unsupported entries are excluded from best-baseline margins, and collapse entries are reported only as raw official-scope reproductions.
+
+\subsection{Level 4: Dense prediction}
+\input{tables/table5_segmentation}
+
+Semantic segmentation directly tests entity-scale normalization because each input contributes a dense pixel lattice. Table~\ref{tab:timestamp_comparison} reports Cityscapes$\rightarrow$ACDC adaptation with SegFormer-B5. \method{} obtains the lowest mean online error, $40.8\%$, and the highest mIoU, $59.30\%$. The closest baseline is CoTTA with $41.5\%$ online error and $58.24\%$ mIoU, so the gain is $0.7$ online-error points and $1.06$ mIoU points.
+
+This is a moderate stability gain rather than the paper's main margin. Because ACDC contains adverse weather and illumination changes where large regions can dominate the loss, \sane{} ties the update scale to selected pixel evidence rather than raw pixel count.
+
+\subsection{Level 5: Vision-language model adaptation}
+\input{tables/table6_vitb16_vlm}
+\input{tables/table6_vlm_protocol}
+
+Prompt-only VLM adaptation asks whether evidence selection, anchoring, and selected-entity normalization remain useful when the adapted object is a prompt-view prediction rather than a normalization layer. VLM experiments use episodic instance-wise prompt adaptation: the prompt context and optimizer state are reset to their initialization for every test instance. This is not the continual stream protocol used for classification. Table~\ref{tab:l6} reports CLIP ViT-B/16 results under zero-shot and CoOp prompt initializations, while Table~\ref{tab:vlm_protocol} makes the protocol differences explicit. The historical Full results are retained pending the registered Core/Full rerun; until that gate completes, VLM is treated as an extension rather than evidence for an identical cross-task loss.
+
+\subsection{Ablation and same-role replacements}
+\input{tables/table7_ablation}
+\input{tables/table5_sane_placeholder}
+
+The ablation in Table~\ref{tab:l7} verifies that \core{} and \care{} are complementary on ViT-B/16 continual ImageNet-C, and Appendix~\ref{app:ablation_details} reports the corruption-wise expansion. The base online adapter A0 keeps the shared optimizer and update scope but replaces both \core{} and \care{} with raw entropy minimization over all samples, yielding $15.58\pm6.73$. Adding \core{} alone raises accuracy to $34.86\pm11.67$, while keeping \care{} without \core{} reaches only $4.90\pm0.20$. The full configuration reaches $65.14\pm0.05$. Replacing \core{} with DeYO-style selection~\cite{lee2024deyo} or \care{} with AdaDEM-style decoupled entropy minimization~\cite{ma2025adadem} lowers accuracy to $61.4\pm0.13$ and $62.8\pm0.21$.
+
+Table~\ref{tab:sane_seg_placeholder} shows the SegFormer-B5 SANE ablation under the same continual protocol: replacing selected-pixel normalization with total-pixel normalization raises mean online error from $40.80\%$ to $98.92\%$ and reduces mIoU from $59.30\%$ to $1.06\%$.
+
+These comparisons show that ATLAS depends on corroborative selection, conservative anchoring, and selected-entity normalization together. In particular, \care{} is effective only when paired with \core{}, and dense prediction is highly sensitive to normalization by selected rather than total entities.

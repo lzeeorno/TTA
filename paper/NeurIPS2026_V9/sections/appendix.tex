@@ -1,0 +1,262 @@
+\section{Protocol details}
+\label{app:protocol}
+
+All corruption experiments use severity level $5$. Standard corruption adaptation resets the model before each corruption, while continual adaptation processes the $15$ corruptions as an online stream without gradient reset. CIFAR-100-C continual results in Table~\ref{tab:l1a} are reported as mean $\pm$ standard deviation over three random corruption orders. ImageNet-C results in Table~\ref{tab:l2} follow the same standard-versus-continual distinction and are treated as the canonical ImageNet-C results in this manuscript.
+
+Natural-shift recognition uses ImageNet-A, ImageNet-R, ImageNet-V2, and ImageNet-Sketch with ViT-B/16. Wild-stream evaluation uses ViT-B/16 under label shift, mixed shifts, and batch-size-one inference. Semantic segmentation uses a Cityscapes-pretrained SegFormer-B5 evaluated on ACDC and reports online error together with mIoU. VLM adaptation uses CLIP ViT-B/16 and reports dataset-wise top-1 accuracy and the OOD average across the four natural-shift test sets.
+
+For the corruption benchmarks, the standard columns report mean $\pm$ standard deviation across three random seeds, whereas the continual columns report mean $\pm$ standard deviation across three random corruption orders.
+
+\paragraph{Asset licenses and terms.}
+The paper does not redistribute third-party datasets or pretrained weights inside the manuscript source. The repository README declares MIT licensing for the project code, and the supplementary disclosure package follows the same project-level release notice. ImageNet-C and CIFAR-C are obtained from their original benchmark releases; ImageNet validation data and the natural-shift datasets are obtained from their original portals or community mirrors under the corresponding dataset terms. Cityscapes and ACDC are used through their official dataset portals, with Cityscapes explicitly distributed for non-commercial scientific use and with no dataset redistribution. The CLIP code release is MIT licensed, and the SegFormer-B5 Cityscapes checkpoint follows the license referenced by the official NVLabs/Hugging Face release. The corresponding creators are cited in the manuscript, and the same source/terms summary is repeated in the supplementary README for reproduction.
+
+\section{Selected tensors and the \atlasloss{}}
+\label{app:selected_tensors}
+
+The entities selected by \core{} are prediction tensors, not saved augmented images. In classification, the selected entity is an image-level logit and probability vector. In semantic segmentation, the selected entity is a pixel-level logit and probability vector after the spatial lattice is flattened. In prompt-only VLM adaptation, the selected entity is a prompt-view prediction tensor. This definition explains why \sane{} normalizes the loss by the number of active selected entities rather than by the number of rendered views or pixels before selection.
+
+The pseudo-target path follows the method equations. Source, raw, photometric, structural, and destroy-view logits are converted to probabilities by softmax. The pseudo-target is produced by confidence-weighted voting over source, raw, photometric, and structural predictions. The destroy view does not vote; it contributes a risk term through the target-class probability drop $q_u^{\mathrm{raw}}-q_u^{\mathrm{des}}$. The \atlasloss{} then combines the selected entity mask from \core{}, the drift-control term from \care{}, and the entity normalizer from \sane{}.
+
+\section{Executable ATLAS algorithm}
+\label{app:atlas_executable}
+
+The main text presents ATLAS as a reliability decomposition with scenario-specific gate, anchor, parameter, and optimization choices. This section gives the shared notation and then discloses how each evaluated branch instantiates it; it does not imply that all branches use an identical numerical update.
+
+Table~\ref{tab:shared_instantiations} separates the shared principle from the
+scenario-specific instantiation. Across branches, ATLAS adapts primitive
+prediction entities with the same source/raw/view/probe evidence interface,
+safety score, CARE support, and SANE normalizer. The differences are the entity
+scale, the final gate $\gamma_u$, the CARE anchor selected for that branch, and
+the lightweight parameters allowed to move.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.3pt}
+\renewcommand{\arraystretch}{1.08}
+\caption{Shared ATLAS principle versus scenario-specific instantiations. The table makes explicit that ATLAS shares the entity-level loss interface while specializing the final gate, anchor, and updated parameter scope.}
+\label{tab:shared_instantiations}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllllll@{}}
+\toprule
+Branch & Shared entity set & Shared views & Shared safety score & Scenario-specific $\gamma_u$ & CARE anchor & Updated params \\
+\midrule
+BN/GN image classification
+& image logits
+& src/raw/pho/str/des
+& Eq.~\ref{eq:safety_score}
+& entropy + destroy drop
+& source-relative
+& BN/GN affine \\
+LN image classification
+& image logits
+& src/raw/pho/str/des
+& Eq.~\ref{eq:safety_score}
+& entropy + PLPD/destroy drop
+& class-centered
+& ViT LayerNorm \\
+Segmentation
+& pixel logits
+& src/raw/hflip/scale/probe
+& Eq.~\ref{eq:safety_score}
+& pixel entropy + probe drop
+& class-centered
+& SegFormer norm/decode-BN \\
+Prompt VLM
+& prompt-view logits
+& src/raw/weak/struct/des
+& Eq.~\ref{eq:safety_score}
+& view agreement + dispersion
+& class-centered
+& prompt context \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\begin{algorithm}[t]
+\caption{One online \textsc{ATLAS} update on a target batch}
+\label{alg:atlas_update}
+\small
+\begin{algorithmic}[1]
+\Require Target batch $x_t$, online model $f_{\theta_t}$, frozen source model $f_{\theta_s}$, and active entity scale $a\in\{\mathrm{img},\mathrm{pix},\mathrm{prm}\}$.
+\State Construct the source, raw, photometric, structural, and structure-breaking predictions required by the active scenario.
+\State Form the pseudo-target $\hat y_u$ and the target-class probabilities $q_u^m$ by Eqs.~\ref{eq:vote}--\ref{eq:target_prob}.
+\State Aggregate the four normalized evidence terms with the coefficient-free equal mean in Eq.~\ref{eq:reward}; weighted aggregation is retained in code only for legacy-result reproduction.
+\State Compute the corroboration statistics in \core{}: the reward $R_u^m$, the dispersion $\delta_u$, the safety score $s_u$, the soft safety weight $\omega_u$, and the scenario gate $\gamma_u$.
+\State Form the selected set $\mathcal{S}_t^a=\{u\in\mathcal{U}_t^a:\mathcal{M}_{\mathrm{sel}}(u)=1\}$ and the normalizer $Z_a$.
+\If{$Z_a=0$}
+    \State Skip the update.
+\EndIf
+\For{each selected entity $u\in\mathcal{S}_t^a$}
+    \State Choose the \care{} anchor used by the active scenario: the source-relative form in Eq.~\ref{eq:anc_entity} when source support remains reliable, or the class-centered form otherwise.
+\EndFor
+\State Aggregate the selected entity losses into $\mathcal{L}_{\text{\textsc{ATLAS}}}^{a}$ by Eq.~\ref{eq:atlas_loss}.
+\State Update only the branch parameters listed in Table~\ref{tab:repro_branch_settings} with one optimization step and keep the source anchor frozen.
+\end{algorithmic}
+\end{algorithm}
+
+Table~\ref{tab:repro_branch_settings} records the branch-level settings needed
+to interpret and reproduce the main results. It does not replace the released
+commands or configuration files; instead, it summarizes the parameter scope,
+optimizer, learning rate, batch size, view/probe construction, gate, anchor,
+normalizer, and reset rule that vary across branches.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{1.6pt}
+\renewcommand{\arraystretch}{1.07}
+\caption{Branch-level reproducibility summary for the ATLAS runs reported in the main tables. LR denotes learning rate and BS denotes target batch size.}
+\label{tab:repro_branch_settings}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}lllllllllll@{}}
+\toprule
+Branch & Dataset & Updated parameters & Opt. & LR & BS & Views/probes & Gate & CARE anchor & Normalizer & Reset/continual rule \\
+\midrule
+CIFAR image
+& CIFAR-100-C
+& norm
+& SGD
+& $10^{-3}$
+& 128
+& src/raw/pho/str/des
+& entropy + des
+& source-relative
+& sel. images
+& continual; reset appendix \\
+GN image
+& ImageNet-C R50-GN
+& GN affine
+& SGD
+& $2.5{\times}10^{-4}$
+& 118
+& src/raw/pho/str/des
+& entropy + des
+& source-relative
+& sel. images
+& reset std.; stream cont. \\
+LN image
+& ImageNet-C/natural/wild ViT-B
+& LayerNorm
+& Adam/SGD
+& $10^{-5}$; $1.84{\times}10^{-3}$ natural; $5{\times}10^{-5}$ BS=1
+& 48/118/1
+& src/raw/pho/str/PLPD
+& entropy + PLPD/des
+& class-centered
+& sel. images
+& reset std.; stream otherwise \\
+Pixel
+& Cityscapes$\rightarrow$ACDC SegFormer-B5
+& norm/decode-BN
+& Adam
+& $10^{-5}$
+& 1
+& src/raw/hflip/scale/probe
+& entropy + probe
+& class-centered
+& sel. pixels
+& 10-round stream; t=1/4/7/10 \\
+Prompt
+& CLIP ViT-B/16 OOD VLM
+& prompt context
+& Adam
+& $5{\times}10^{-3}$
+& 1
+& src/raw/weak/struct/des
+& view agreement
+& class-centered
+& sel. prompt views
+& per dataset, zs/CoOp init. \\
+\bottomrule
+\end{tabular}}
+\end{table*}
+
+\paragraph{Scenario-specific gate $\gamma_u$.}
+For the canonical branches, Eq.~\ref{eq:selected} is instantiated at the same abstraction level as the main text:
+\begin{align}
+\gamma_u^{\mathrm{img,BN/GN}}
+&=
+\mathbf{1}[\bar H_u^{\mathrm{raw}}<m_{\mathrm{img}}^{\mathrm{bn}}]
+\mathbf{1}[\Delta_u^{\mathrm{des}}>\rho_{\mathrm{img}}^{\mathrm{bn}}],
+\\
+\gamma_u^{\mathrm{img,LN}}
+&=
+\mathbf{1}[\bar H_u^{\mathrm{raw}}<m_{\mathrm{img}}^{\mathrm{ln}}]
+\mathbf{1}[\Delta_u^{\mathrm{des}}>\rho_{\mathrm{img}}^{\mathrm{ln}}],
+\\
+\gamma_{i,s}^{\mathrm{pix}}
+&=
+\mathbf{1}[\bar H_{i,s}^{\mathrm{raw}}<m_{\mathrm{pix}}]
+\mathbf{1}[\Delta_{i,s}^{\mathrm{probe}}>\rho_{\mathrm{pix}}],
+\\
+\gamma_u^{\mathrm{prm}}
+&=
+\mathbf{1}[1-\Delta_u^{\mathrm{view}}>\rho_{\mathrm{prm}}].
+\end{align}
+Here $\Delta_u^{\mathrm{des}}$ is the destroy-view sensitivity already defined in Eq.~\ref{eq:safety_terms}; $\Delta_{i,s}^{\mathrm{probe}}$ denotes the analogous local confidence drop under the structure-breaking probe used for pixel-level adaptation; and $1-\Delta_u^{\mathrm{view}}$ is the cross-view agreement score for prompt-view prediction. This notation makes explicit that $\gamma_u$ is scenario-specific. The paper-level margins exposed below are $m_{\mathrm{img}}^{\mathrm{ln}}=m_{\mathrm{pix}}=0.4\log K$ and $\rho_{\mathrm{img}}^{\mathrm{ln}}=\rho_{\mathrm{pix}}=0.2$ for the LN/SegFormer branches, together with the image-classification GN thresholds $\bar H_u^{\mathrm{raw}}<0.78$ and $\Delta_u^{\mathrm{des}}>0.20$. For prompt-view adaptation, the manuscript-level gate is the cross-view agreement term above together with the prompt-view dispersion threshold and safety margins reported below; we do not expose a separate prompt entropy margin in the paper.
+
+\paragraph{Paper-level hyperparameters.}
+To keep the appendix aligned with the paper abstraction, we expose only the scalars that appear in the formulation itself. In the canonical artifact, the source-view prior in Eq.~\ref{eq:vote} is $\eta_{\mathrm{src}}=1.25$, and the upper CARE clip in Eq.~\ref{eq:clip} uses $\epsilon_{\mathrm{high}}=0.28$. The \core{} dispersion threshold in Eq.~\ref{eq:selected} is $\tau_{\delta}=0.05$ for image classification, $0.03$ for segmentation, and $0.04$ for prompt-view adaptation. The safety-score weights in Eqs.~\ref{eq:safety_score}--\ref{eq:safe} are $(\lambda_e,\lambda_a,\lambda_v,\lambda_d)=(0.35,0.25,0.20,0.20)$ with $(m_{\mathrm{safe}},m_{\mathrm{hard}})=(0.35,0.75)$ for image classification, $(0.40,0.25,0.20,0.15)$ with $(0.30,0.70)$ for segmentation, and $(0.35,0.25,0.20,0.20)$ with $(0.30,0.70)$ for prompt-view adaptation. For the class-centered LN/SegFormer branches, the canonical EMA step is $\pi=0.1$ (hence $\mu=0.9$), with entropy margin $0.4\log K$, probe margin $0.2$, and patch length $4$. These are the manuscript-level constants used to instantiate the paper equations; implementation-specific scheduling details remain in the released artifact rather than in the paper-level formulation.
+
+\paragraph{Anchor choice and class-center updates.}
+The canonical branches select between the two CARE forms at the branch level. BN/GN image classification uses the source-relative form in Eq.~\ref{eq:anc_entity}, whereas LN-based image classification, SegFormer-B5 segmentation, and prompt-view adaptation use the class-centered form. The EMA class template is updated only from selected entities,
+\begin{equation}
+\begin{aligned}
+c_k^t
+&=
+\begin{cases}
+\mu c_k^{t-1}
++
+(1-\mu)
+\frac{1}{|\mathcal{S}_k^t|}
+\sum_{u\in\mathcal{S}_k^t} p_u^{\mathrm{raw}},
+& |\mathcal{S}_k^t|>0,\\
+c_k^{t-1},
+& |\mathcal{S}_k^t|=0,
+\end{cases}\\
+\mathcal{S}_k^t
+&=\{u\in\mathcal{S}_t^a:\arg\max_c p_u^{\mathrm{raw}}(c)=k\},\\
+\mu&=1-\pi.
+\end{aligned}
+\end{equation}
+The canonical setting uses $\pi=0.1$, i.e., $\mu=0.9$.
+
+\section{Baseline reproduction notes for anomalous values}
+\label{app:reproduction_notes}
+
+The anomalous baseline values in Tables~\ref{tab:l2}--\ref{tab:l4} are copied from raw run outputs rather than adjusted post hoc. They come from either official-scope limitations or branch-specific failure modes under the shared evaluation protocol. Unsupported entries are excluded from best-baseline margins, and low official-scope reproductions are retained for auditability rather than used as the primary comparison.
+
+\paragraph{FOA on ResNet-50-GN in Table~\ref{tab:l2}.}
+The cells remain \pending because the official FOA release is Vision-Transformer-only. The paper artifact aborts non-ViT backbones before evaluation and keeps the official ViT/ImageNet defaults for supported runs: $\texttt{num\_prompts}=3$, $\texttt{fitness\_lambda}=0.4$ except $0.2$ on ImageNet-R, $\texttt{sigma}=1.0$, $\texttt{popsize}=27$, $\texttt{hist\_momentum}=0.9$, $\texttt{reference\_batch\_size}=64$, and all available ImageNet source samples for reference statistics. We therefore mark the CNN/GN cells as unsupported rather than report fabricated compatibility numbers.
+
+\paragraph{AdaDEM on ImageNet-Sketch in Table~\ref{tab:l3}.}
+The $4.96\%$ value is the direct output of the natural-shift logs and is not a hand-edited table entry. We use the official ViT/ImageNet hyperparameters summarized in the reproduction record: vanilla SGD, batch size $64$, learning rate $0.1$, and EMA parameter $\pi=0.1$. The run therefore does not fail because of a code mismatch; it is a low official-scope reproduction on the sketch-only domain under the shared natural-shift protocol, and we preserve that raw value in the paper.
+
+\paragraph{FOA on ImageNet-R in Table~\ref{tab:l3}.}
+The $0.11\%$ value also comes from direct run outputs. The paper artifact follows the official ViT/ImageNet path and uses FOA's dataset-specific ImageNet-R default with $\texttt{fitness\_lambda}=0.2$ instead of $0.4$, together with $\texttt{sigma}=1.0$, $\texttt{popsize}=27$, $\texttt{hist\_momentum}=0.9$, and reference batch size $64$. Under the shared natural-shift protocol this official setting is brittle on ImageNet-R, so we report the raw reproduction rather than tune a separate rescue configuration outside the method's released scope.
+
+\section{Additional CIFAR-100-C standard results}
+\label{app:additional_cifar}
+
+Table~\ref{tab:l1b} reports the reset-per-corruption CIFAR-100-C protocol corresponding to the continual results in Table~\ref{tab:l1a}. The table uses the same method roster and corruption ordering, which separates single-corruption adaptation quality from long-horizon error accumulation. Its standard-deviation values come from random seed differences under the reset-per-corruption protocol. Under this standard protocol, \method{} reaches $69.1\pm0.0$ average accuracy, exceeding SURGEON by $0.4$ points and Tent by $1.7$ points.
+
+\input{tables/table1b_cifar100c_standard}
+
+
+\section{Detailed corruption-wise results for Table~\ref{tab:l7}}
+\label{app:ablation_details}
+
+Table~\ref{tab:l7_detailed} expands Table~\ref{tab:l7} with corruption-wise ImageNet-C continual results. For A0--A2, the corruption columns report mean accuracies over the same three random orders used in Table~\ref{tab:l7}. For A3--B2, we retain the average values from Table~\ref{tab:l7} and leave corruption-wise cells as dashes.
+
+\input{tables/tableF_ablation_detailed}
+
+
+\section{Experimental compute resources}
+\label{app:compute_resources}
+
+All experiments in this paper were executed on a single local workstation with one NVIDIA GeForce RTX 4090 GPU (24 GB VRAM), an Intel Core i7-12700K CPU (20 logical CPUs), and 31 GiB system RAM, running Ubuntu Linux with kernel 6.8.0. We did not use distributed training, multi-node scheduling, or mixed GPU pools; each reported result was produced as a single-process single-GPU job on this machine.
+
+\input{tables/tableF_efficiency}
+
+The first two rows in Table~\ref{tab:appendix_efficiency} come from the controlled efficiency script in the artifact, which runs a fixed two-batch ImageNet-C ViT-B/16 probe on \texttt{gaussian\_noise} and measures wall-clock plus peak RSS with \texttt{/usr/bin/time}. The last row is mined from historical order-0 continual-ViT logs on the same workstation. These numbers show that ATLAS is only slightly slower than Tent and AdaDEM in a bounded probe, but its full-stream continual ViT evaluation is longer because it materializes corroborative views and safety probes on every online step.

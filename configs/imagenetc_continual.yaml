@@ -1,0 +1,42 @@
+# ImageNet-C Continual TTA Configuration
+# Following CoTTA evaluation protocol:
+# - No reset between corruptions (continual adaptation)
+# - shuffle=False (sequential order)
+# - Multiple corruption orders to test stability
+
+_BASE_: default.yaml
+
+model:
+  backbone: resnet50_gn
+  adapt_params: gn
+
+dataset:
+  name: imagenetc
+  data_root: ./data/imagenet-c
+  imagenet_val_root: ./data/imagenet/val
+  batch_size: 118
+  num_workers: 8
+  # Continual TTA uses sequential order (shuffle=False)
+  shuffle: false
+
+optim:
+  lr: 0.00025
+
+# Continual TTA settings
+tta:
+  # NO RESET - this is the key difference from Standard TTA
+  reset_each_corruption: false
+  # Corruption order index (0-9 for 10 random orders)
+  corruption_order: 1
+
+# Continual scenario: optimized hyperparameters
+triad:
+  d3lr:
+    alpha_max: 50.0  # Continual optimal (Standard uses 75 from default)
+  distill:
+    weight: 0.8  # optimized: μ=0.8 (sensitivity analysis §3)
+
+# Logging
+logging:
+  save_results: true
+  results_dir: ./results

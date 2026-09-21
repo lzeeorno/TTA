@@ -1,0 +1,33 @@
+# ViT-B/16 + ImageNet-C Continual TTA Configuration
+# For Vision Transformer continual adaptation experiments
+
+_BASE_: vit_imagenetc.yaml
+
+dataset:
+  shuffle: false  # Sequential order within each corruption
+
+tta:
+  # NO RESET - continual adaptation across all corruptions
+  reset_each_corruption: false
+
+# Keep single-pass by default in shared continual runs.
+# Lifelong protocol (e.g., 50 repeats) must be enabled explicitly via CLI:
+#   --method lcotta --lcotta-repeats 50
+lcotta:
+  repeats: 1
+
+# Continual scenario: optimized hyperparameters (more conservative)
+triad:
+  gate:
+    confidence_quantile: 0.5
+    use_aux_consistency: true
+    consistency_patch_ratio: 0.09375
+    model_probs_momentum: 0.9
+  d3lr:
+    alpha_max: 50.0  # Continual optimal (Standard uses 75 from default)
+  distill:
+    weight: 0.8
+  vit_schedule:
+    enabled: true
+    distill_warmup_steps: 64
+    ais_warmup_steps: 16

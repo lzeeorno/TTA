@@ -1,0 +1,9 @@
+\section{Conclusion}
+
+This paper studies ATLAS under a cross-scenario protocol rather than drawing conclusions from a single corruption benchmark. The method is organized around corroborated evidence, anchored updates, and normalization by selected entities, with distinct implementations for classification, dense prediction, and episodic prompt adaptation. On ViT-B/16 continual ImageNet-C, \method{} reaches $65.14\%$ accuracy, $1.03$ points above AdaDEM; on wild batch-size-one streams, it reaches $59.16\%$, $3.34$ points above SAR; and on CLIP ViT-B/16 prompt adaptation, it reaches $64.2\%$ OOD average accuracy under CoOp initialization, $1.0$ point above AdaDEM. Together with the component and normalization ablations, these results support the proposed reliability decomposition in the evaluated settings. They do not establish that one numerical recipe transfers unchanged across tasks. Reducing scenario-specific tuning and multi-view cost remains an important direction.
+
+
+\textbf{Limitations}
+Conservative anchoring can restrict adaptation when the frozen source model provides weak semantic support, so \method{} is not guaranteed to succeed.
+\textbf{Broader impact}
+The intended benefit of \method{} is more reliable adaptation for deployed vision systems facing corruptions, adverse weather, non-i.i.d. streams, and prompt-based multimodal inputs.

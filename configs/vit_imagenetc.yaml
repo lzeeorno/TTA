@@ -1,0 +1,65 @@
+# ViT-B/16 + ImageNet-C configuration
+# For Vision Transformer experiments
+
+_BASE_: default.yaml
+
+model:
+  # 使用timm的ViT-B/16 预训练模型
+  backbone: vit_base_patch16_224
+  pretrained: true
+  # ViT使用LayerNorm，不是BatchNorm
+  adapt_params: ln  # 关键：对ViT需要调整LayerNorm参数
+
+dataset:
+  name: imagenetc
+  data_root: ./data/imagenet-c
+  imagenet_val_root: ./data/imagenet/val
+  # =============================================================================
+  # ViT-B/16 Batch Size参考 (显存约为ResNet-50的2倍):
+  # RTX 3060 (12GB):  batch_size = 16-24
+  # RTX 4090 (24GB):  batch_size = 48-64
+  # A6000    (48GB):  batch_size = 96-128
+  # =============================================================================
+  batch_size: 48  # 默认值统一为ViT:48（24GB GPU）
+  num_workers: 8
+
+# ViT对学习率更敏感，建议使用更小的lr
+optim:
+  optimizer: adam  # Adam更适合Transformer
+  lr: 0.00001  # 比ResNet更小的学习率
+  weight_decay: 0.0
+
+lcotta:
+  lr: 0.0005
+  window_length: 100
+  n_components: 50
+  batch_step: 100
+
+tta:
+  # Standard TTA: reset before each corruption type
+  reset_each_corruption: true
+
+# TRIAD配置 - ViT特定调整
+triad:
+  gate:
+    enabled: true
+    threshold_type: adaptive
+    threshold_init: 0.3  # ViT可能需要更低的阈值
+    confidence_quantile: 0.7
+    use_aux_consistency: true
+    consistency_patch_ratio: 0.125
+    model_probs_momentum: 0.7
+
+  augmentation:
+    type: weak  # 使用弱增强，因为ViT对增强敏感
+
+  proximal:
+    enabled: true
+    lambda_base: 0.05  # ViT使用更小的正则化强度
+    lambda_type: adaptive
+    lambda_beta: 0.5  # 更保守的自适应调整
+
+  vit_schedule:
+    enabled: true
+    distill_warmup_steps: 16
+    ais_warmup_steps: 4

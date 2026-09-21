@@ -1,0 +1,88 @@
+experiment:
+  name: table6_vlm_tta
+  task: vlm_tta
+  protocol: vlm_tta_prompt_setting_matrix_v1
+  protocol_policy: prompt_setting_separated_ood_protocol
+  protocol_notes:
+    - Run one dataset at a time because the upstream tta-vlm entrypoints do not accept slash-joined benchmark sets as a single invocation.
+    - Separate zero-shot prompt setting from CoOp-supervised learned prompt setting because text prompts define the CLIP classifier prototypes.
+    - Default runner skips ImageNet-1K and evaluates only ImageNet-A, ImageNet-V2, ImageNet-R, and ImageNet-Sketch.
+    - Keep dataset-layout deviations and missing assets in implementation notes instead of silently assuming official folder names.
+
+dataset:
+  root: data
+  requested_test_sets: [A, V, R, K]
+  path_candidates:
+    I: [data/imagenet/images/val, data/imagenet/val, data/imagenet/val/ILSVRC2012_img_val]
+    A: [data/imagenet-adversarial/imagenet-a, data/imagenet-a]
+    V: [data/imagenetv2/imagenetv2-matched-frequency-format-val, data/imagenetv2-matched-frequency-format-val, data/imagenet-v2]
+    R: [data/imagenet-rendition/imagenet-r, data/imagenet-r]
+    K: [data/imagenet-sketch/images, data/imagenet-sketch]
+  imagenet_flat_val_label_candidates:
+    - data/imagenet/val_labels.txt
+    - data/imagenet/ILSVRC2012_validation_ground_truth.txt
+    - data/imagenet/val_labels.json
+
+model:
+  backbone: ViT-B/16
+  clip_cache_root: models/clip/openai
+  required_weight_files:
+    ViT-B/16: models/clip/openai/ViT-B-16.pt
+  optional_weight_files:
+    ViT-L/14: models/clip/openai/ViT-L-14.pt
+  legacy_hf_cache_dirs:
+    - models/clip/openai-vit-b16
+    - models/clip/openai-vit-l14
+
+methods:
+  prompt_settings: [zs, coop]
+  rows_per_prompt_setting: [source, tpt, tda, adadem, atlas]
+  display_rows:
+    zs: [Zero-Shot, TPT, TDA, AdaDEM, "ATLAS (ours)"]
+    coop: [CoOp, "TPT (CoOp)", "TDA (CoOp)", "AdaDEM (CoOp)", "ATLAS (CoOp)"]
+  coop_checkpoint_env: COOP_CKPT
+  default_coop_checkpoint: models/coop/imagenet/vit_b16_ep50_nctx4_seed1/model.pth.tar-50
+  coop_download_script: scripts/download_table6_coop_weights.sh
+  common:
+    n_ctx: 4
+    ctx_init: a_photo_of_a
+    tta_steps: 1
+    selection_p: 0.1
+    lr: 5e-3
+  episodic:
+    source: {batch_size: 64}
+    tpt: {batch_size: 64}
+    adadem: {batch_size: 64, pi: 0.1}
+    atlas:
+      method_variant: full
+      selection_quantile: 0.5
+      batch_size: 64
+      tta_steps: 1
+      selection_p: 0.1
+      lr: 5e-3
+      adadem_pi: 0.1
+      entropy_weight: 0.35
+      source_anchor_weight: 0.02
+      view_consistency_weight: 0.05
+      source_output: auto
+      output_fusion: confidence
+      adapted_output_weight: 1.0
+      source_output_weight: 1.0
+      view_output_weight: 0.5
+      fusion_temperature: 2.0
+  online:
+    tda: {batch_size: 1}
+
+protocol:
+  episodic_batch_size: 64
+  online_batch_size: 1
+  seed: 1
+  gpu: 0
+  workers: 4
+  print_freq: 50
+  max_samples: 0
+  save_per_sample: false
+  prompt_ensemble_chunk_size: 256
+  results_root: results/table6_vlm_tta
+  logs_root: logs
+  conda_env: sata

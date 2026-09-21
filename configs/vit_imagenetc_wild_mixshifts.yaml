@@ -1,0 +1,20 @@
+# ViT-B/16 Wild Scenario: Mixed Shifts
+# All 15 corruptions mixed together on ImageNet-C
+
+_BASE_: vit_imagenetc.yaml
+
+dataset:
+  batch_size: 48
+  num_workers: 0
+  shuffle: true  # Mixed shifts: all corruptions shuffled
+
+optim:
+  lr: 0.00001
+
+atlas:
+  dig:
+    buffer_scenarios: [bs1, label_shifts]
+
+tta:
+  reset_each_corruption: false
+  scenario: mix_shifts

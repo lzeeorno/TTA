@@ -1,0 +1,32 @@
+# ImageNet-C (ResNet-50-BN) configuration
+# Standard TTA: reset before each corruption type, shuffle=false (default)
+# All methods use paper-recommended BN settings (batch_size=64)
+# Method-specific settings (CoTTA SGD/DeYO plpd_threshold) handled in main.py
+
+_BASE_: default.yaml
+
+model:
+  # Standard ResNet-50 with BatchNorm (torchvision, IMAGENET1K_V2 weights)
+  backbone: resnet50
+
+dataset:
+  name: imagenetc
+  data_root: ./data/imagenet-c
+  imagenet_val_root: ./data/imagenet/val
+  batch_size: 64   # Paper standard for BN ResNet-50 (Tent/EATA/SAR/CoTTA/RoTTA/DeYO)
+  num_workers: 8
+
+optim:
+  # Shared default lr for Tent/EATA/SAR/DeYO
+  # CoTTA and RoTTA override this in main.py (CoTTA: SGD lr=0.01, RoTTA: Adam lr=0.001)
+  lr: 0.00025
+
+lcotta:
+  lr: 0.00015
+  window_length: 100
+  n_components: 25
+  batch_step: 50
+
+tta:
+  # Standard TTA: reset before each corruption type
+  reset_each_corruption: true

@@ -1,0 +1,19 @@
+\begin{table*}[t]
+\centering
+\small
+\caption{Orthogonal decomposition and same-role replacements on ImageNet-C with ViT-B/16. A0 keeps the shared online optimizer and parameter-update scope but replaces \core{} and \care{} with raw entropy minimization over all samples; A1 applies the same entropy loss only to \core{}-selected entities. Replacement rows compare \core{} and \care{} with published alternatives of similar role.}
+\label{tab:l7}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lcccl}
+\toprule
+Config & \core{} & \care{} & Continual mean acc. & Comment \\
+\midrule
+A0 & None & None & \res{15.58}{6.73} & raw entropy on all samples \\
+A1 & \core{} & None & \res{34.86}{11.67} & raw entropy on selected entities \\
+A2 & None & \care{} & \res{4.90}{0.20} & conservative anchoring only \\
+A3 & \core{} & \care{} & \res{65.14}{0.05} & full \method{} \\
+B1 & DeYO-style selection~\cite{lee2024deyo} & \care{} & \res{61.4}{0.13} & replace \core{} with a published selector \\
+B2 & \core{} & AdaDEM-style decoupled entropy~\cite{ma2025adadem} & \res{62.8}{0.21} & replace \care{} with a published decoupled objective \\
+\bottomrule
+\end{tabular}}
+\end{table*}

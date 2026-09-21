@@ -1,0 +1,43 @@
+# SATA: Stability-Aware Test-Time Adaptation
+# Python 3.10+ required
+
+# Core dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# Scientific computing
+numpy>=1.24.0
+scipy>=1.10.0
+pandas>=2.0.0
+cma>=3.3.0
+
+# Deep learning utilities
+timm>=0.9.0
+robustbench>=1.1
+
+# Configuration
+pyyaml>=6.0
+yacs>=0.1.8
+
+# Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+tensorboard>=2.13.0
+
+# Utilities
+tqdm>=4.65.0
+opencv-python>=4.7.0
+Pillow>=9.5.0
+
+# Table 5 / Table 6 optional runtime dependencies. The corresponding external
+# baseline source is intentionally not included in this release.
+transformers>=4.35.0
+einops>=0.7.0
+ftfy>=6.1.0
+regex>=2023.0.0
+
+# Optional: for development
+# pytest>=7.0.0
+# black>=23.0.0
+# flake8>=6.0.0

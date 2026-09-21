@@ -1,0 +1,8 @@
+# ViT-B/16 + ImageNet-C Lifelong Continual TTA Configuration
+# Dedicated for long-term protocols (e.g., LCoTTA repeats)
+
+_BASE_: vit_imagenetc_continual.yaml
+
+logging:
+  # Isolate lifelong outputs from standard continual runs
+  results_dir: ./results_lifelong

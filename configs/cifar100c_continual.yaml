@@ -1,0 +1,13 @@
+# CIFAR-100-C Continual TTA configuration
+
+_BASE_: cifar100c.yaml
+
+dataset:
+  shuffle: false
+
+tta:
+  reset_each_corruption: false
+
+logging:
+  save_results: true
+  results_dir: ./results

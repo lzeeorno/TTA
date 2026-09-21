@@ -1,0 +1,33 @@
+# CIFAR-100-C specific configuration
+# For quick iteration and ablation studies
+
+_BASE_: default.yaml
+
+model:
+  # NOTE: code/models/__init__.py loads RobustBench weights based on dataset.
+  # For CIFAR-100-C, fix backbone to ResNeXt-29 via RobustBench.
+  # This maps to: Hendrycks2020AugMix_ResNeXt.
+  backbone: resnext29
+
+dataset:
+  name: cifar100c
+  data_root: ./data/cifar100-c/CIFAR-100-C
+  # =============================================================================
+  # CIFAR-100-C Batch Size参考 (ResNeXt-29):
+  # Source/Tent/EATA/SAR:
+  #   RTX 3060 (12GB):  batch_size = 200-256
+  #   RTX 4090 (24GB):  batch_size = 512-1024
+  # DELTA (需要额外内存用于源模型):
+  #   RTX 4090 (24GB):  batch_size = 64-128
+  # 注：CIFAR图像较小(32x32)，可使用更大batch size
+  # =============================================================================
+  batch_size: 128  # 适合DELTA在RTX 4090上运行
+
+optim:
+  lr: 0.001  # following Tent paper (0.001 for CIFAR)
+
+# TTA settings for CIFAR-100-C
+tta:
+  # Use each_shift_reset mode (following Tent paper evaluation protocol)
+  # "reset adaptation for each combination of corruption x severity"
+  reset_each_corruption: true

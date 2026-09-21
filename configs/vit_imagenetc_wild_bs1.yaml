@@ -1,0 +1,16 @@
+# ViT-B/16 Wild Scenario: Batch Size = 1
+# Extreme low batch size adaptation on ImageNet-C
+
+_BASE_: vit_imagenetc.yaml
+
+dataset:
+  batch_size: 1
+  num_workers: 0
+  shuffle: true  # Wild scenario: shuffled data
+
+optim:
+  lr: 0.00005  # Lower LR for BS=1
+
+tta:
+  reset_each_corruption: false
+  scenario: bs1

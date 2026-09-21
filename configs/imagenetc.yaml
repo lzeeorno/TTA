@@ -1,0 +1,48 @@
+# ImageNet-C specific configuration
+# For main results table
+
+_BASE_: default.yaml
+
+model:
+  # Use GroupNorm ResNet-50 for TTA experiments
+  # SAR paper shows that BatchNorm causes TTA methods to collapse (Tent: 2.1%, EATA: 0.9%)
+  # GroupNorm is stable for online TTA
+  backbone: resnet50_gn
+  adapt_params: gn
+
+dataset:
+  name: imagenetc
+  data_root: ./data/imagenet-c
+  imagenet_val_root: ./data/imagenet/val  # for source accuracy
+  # =============================================================================
+  # ImageNet-C Batch Size参考 (ResNet-50):
+  # RTX 3060 (12GB):  batch_size = 32-64
+  # RTX 4090 (24GB):  batch_size = 128-200
+  # A6000    (48GB):  batch_size = 256-384
+  #
+  # 对于ViT-B/16:
+  # RTX 3060 (12GB):  batch_size = 16-24
+  # RTX 4090 (24GB):  batch_size = 48-64
+  # A6000    (48GB):  batch_size = 96-128
+  #
+  # 对于RoTTA (需要额外内存存储memory bank):
+  # RTX 4090 (24GB):  batch_size = 32-48
+  # =============================================================================
+  batch_size: 118  # 减小以适配RoTTA的memory bank (从64改为32)
+  num_workers: 8  # more workers for ImageNet
+
+optim:
+  lr: 0.00025  # following EATA's setting
+
+lcotta:
+  lr: 0.00015
+  window_length: 100
+  n_components: 25
+  batch_step: 50
+
+# TTA settings for ImageNet-C
+tta:
+  # Use each_shift_reset mode for ImageNet-C (following SAR paper)
+  # This resets the model to initial state after each corruption type
+  # Prevents error accumulation across 15 corruptions
+  reset_each_corruption: true

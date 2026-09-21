@@ -1,0 +1,199 @@
+# Default configuration for TRIAD
+# Modify for specific experiments
+
+# =============================================================================
+# GPU显存与Batch Size参考 (ResNet-50 + ImageNet-C)
+# =============================================================================
+# RTX 3060 (12GB):  batch_size = 32-64
+# RTX 4090 (24GB):  batch_size = 128-256
+# A6000    (48GB):  batch_size = 256-512
+#
+# 对于ViT-B/16:
+# RTX 3060 (12GB):  batch_size = 16-32
+# RTX 4090 (24GB):  batch_size = 64-128
+# A6000    (48GB):  batch_size = 128-256
+# =============================================================================
+
+# Model settings
+model:
+  backbone: resnet50  # resnet50, vit_base_patch16_224
+  pretrained: true
+  adapt_params: bn  # bn, ln, last_layer, all
+
+# Dataset settings
+dataset:
+  name: cifar10c  # cifar10c, cifar100c, imagenetc
+  data_root: ./data
+  corruption_types: all  # all, or list like [brightness, contrast]
+  severity: 5  # 1-5
+  # Batch size设置 - 请根据你的GPU调整:
+  # RTX 3060 (12GB): 64 (ResNet-50), 32 (ViT-B)
+  # RTX 4090 (24GB): 128-256 (ResNet-50), 64-128 (ViT-B)
+  # A6000    (48GB): 256-512 (ResNet-50), 128-256 (ViT-B)
+  batch_size: 64  # 默认值适合RTX 3060
+  num_workers: 4
+
+# TTA settings
+tta:
+  method: triad  # source, tent, eata, sar, triad
+  online: true  # online (single-pass) vs batch
+  reset_each_corruption: false  # reset model after each corruption type
+
+# LCoTTA specific settings
+lcotta:
+  window_length: 100
+  n_components: 20
+  batch_step: 50
+  cosine_margin: 0.05
+  prob_momentum: 0.9
+
+adadem:
+  pi: 0.1
+
+surgeon:
+  bn_only: null
+  probe_samples: 10
+  css_weight: 0.01
+
+foa:
+  num_prompts: 3
+  fitness_lambda: 0.4
+  sigma: 1.0
+  popsize: 27
+  hist_momentum: 0.9
+  reference_batch_size: 64
+  source_samples: 2000
+
+# TRIAD specific settings
+triad:
+  # Batch-level entropy gate (pre-check)
+  gate:
+    enabled: true
+    metric: consistency  # consistency, entropy
+    threshold_type: adaptive  # fixed, adaptive
+    threshold_init: 0.5
+    threshold_alpha: 0.9  # for adaptive threshold EMA
+
+  # Augmentation for consistency (legacy)
+  augmentation:
+    type: weak  # weak, strong
+
+  # D³LR (Dynamic Depth-Decay Learning Rate, C1)
+  d3lr:
+    alpha_max: 75.0  # Standard=75, Continual=50 (overridden in continual configs)
+    kappa: 0.5
+
+  # SAOD (Source-Anchored Output Distillation, C2)
+  distill:
+    temperature: 5.0
+    weight: 0.8  # optimized from sensitivity analysis
+
+  # Legacy proximal settings (ignored, kept for compat)
+  proximal:
+    enabled: true
+    lambda_base: 0.1
+    lambda_type: adaptive
+    lambda_beta: 1.0
+
+# ATLAS specific settings
+atlas:
+  method_variant: full  # full reproduces the current canonical recipe; core removes branch refinements
+  reward:
+    aggregation: equal_mean  # coefficient-free mean of four normalized evidence terms
+  selection:
+    quantile: 0.5  # upper half of the current unlabeled reliability distribution
+  arc:
+    eps_low: 0.2
+    eps_high: 0.28
+  dig:
+    std_threshold: 0.05
+    buffer_target: 8
+    buffer_scenarios: [bs1, label_shifts, mix_shifts]
+  uan:
+    mode: auto
+  sos:
+    safe_margin: 0.35
+    hard_margin: 0.75
+    entropy_weight: 0.35
+    anchor_weight: 0.25
+    view_weight: 0.20
+    destroy_weight: 0.20
+  vit_ln:
+    optimizer: sgd
+    lr: 0.05
+    momentum: 0.0
+    weight_decay: 0.0
+    param_scope: full_ln
+    pi: 0.02
+    entropy_margin_scale: 0.75
+    plpd_threshold: 0.05
+    patch_len: 16
+    source_calib_max_steps: 8
+    source_entropy_alpha: 0.3
+    source_entropy_abs_scale: 1.2
+    snow_entropy_margin_scale: 0.5
+    snow_plpd_threshold: 0.2
+    snow_patch_len: 4
+    standard_plpd_warmup_steps: 64
+    standard_warmup_entropy_margin_scale: 0.5
+    standard_recover_selected_ratio: 0.60
+    standard_recover_active_classes: 16
+    standard_recover_patience: 8
+    standard_source_anchor_weight: 0.25
+    lowtemp_corruptions: [snow]  # standard+vit special handling is snow-only
+    lowtemp_snow_always: true
+    lowtemp_collapse_base_selected_ratio: 0.80
+    lowtemp_collapse_entropy_active_classes: 24
+    lowtemp_collapse_probe_steps: 32
+    lowtemp_patch_len: 4
+    lowtemp_phase1_entropy_margin_scale: 0.5
+    lowtemp_phase1_source_anchor_weight: 0.65
+    lowtemp_phase1_min_steps: 64
+    lowtemp_transition_selected_ratio: 0.85
+    lowtemp_transition_active_classes: 16
+    lowtemp_transition_patience: 2
+    lowtemp_phase2_source_anchor_weight: 0.25
+    lowtemp_phase2_plpd_temperature: 0.1
+    bs1:
+      enabled: true
+      candidate: 4
+      lr: 0.0005
+      param_scope: deyo_vit
+      buffer_all_samples: true
+      loss: deyo_anchor
+      entropy_filter_scale: 0.4
+      entropy_weight_margin_scale: 0.4
+      plpd_threshold: 0.2
+      patch_len: 4
+      reweight_ent: 1.0
+      reweight_plpd: 1.0
+      source_anchor_weight: 0.25
+      topology_weight: 0.0
+    natural_shift:
+      enabled: false
+      entropy_filter_scale: 0.5
+      entropy_weight_margin_scale: 0.4
+      plpd_threshold: 0.2
+      patch_len: 4
+      reweight_ent: 1.0
+      reweight_plpd: 1.0
+      source_anchor_weight: 0.0
+      topology_weight: 0.05
+
+# Optimization
+optim:
+  optimizer: sgd  # sgd, adam
+  lr: 0.001
+  momentum: 0.9
+  weight_decay: 0.0
+
+# Logging
+logging:
+  save_results: true
+  results_dir: ./results
+  log_interval: 100
+  tensorboard: true
+
+# Reproducibility
+seed: 0
+num_seeds: 3  # run with seeds [0, 1, 2]

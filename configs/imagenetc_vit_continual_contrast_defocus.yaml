@@ -1,0 +1,5 @@
+# ImageNet-C ViT-B/16 continual partial run.
+# Keep this file fully aligned with vit_imagenetc_continual.yaml;
+# the partial corruption subset is controlled from the CLI.
+
+_BASE_: vit_imagenetc_continual.yaml

@@ -1,0 +1,8 @@
+\section{Limitations and broader impact}
+
+\paragraph{Limitations.}
+Conservative anchoring can restrict adaptation when the frozen source model provides weak semantic support, so \method{} is not guaranteed to succeed. Multi-view probes add forward passes and increase latency and memory relative to single-view entropy minimization. The implementation retains task-specific parameter scopes, optimizers, and a small number of branch refinements; these choices are disclosed rather than treated as one numerical recipe. The evaluation assumes a closed label space and does not establish behavior under open-set targets or severe label-space mismatch. Long streams, very small batches, correlated misleading views, and class-center contamination can still produce silent degradation. VLM results use an episodic reset protocol and should not be interpreted as continual prompt adaptation. Gains are not uniform, especially when source support is weak or margins are small.
+
+\paragraph{Broader impact.}
+The intended benefit of \method{} is more reliable adaptation for deployed vision systems facing corruptions, adverse weather, non-i.i.d. streams, and prompt-based multimodal inputs.
+% The main deployment risk is over-trust in automatic online updates: an adapted model can still produce incorrect predictions under severe domain mismatch, rare classes, or safety-critical scenes. Responsible use therefore requires monitoring of update acceptance rates, rollback mechanisms for degraded streams, and application-specific validation before high-stakes deployment.

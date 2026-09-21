@@ -1,0 +1,27 @@
+\begin{table*}[hbtp]
+\centering
+\caption{CLIP ViT-B/16 prompt-only VLM adaptation on natural-shift test sets. Top-1 accuracy (\%) is reported. OOD Avg. averages ImageNet-A, ImageNet-V2, ImageNet-R, and ImageNet-Sketch.}
+\label{tab:l6}
+\vspace{2pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l|c c c c|c c}
+\specialrule{1.2pt}{0pt}{0pt}
+Methods & ImageNet-A & ImageNet-V2 & ImageNet-R & ImageNet-S & OOD Avg. & $\Delta$ \\
+\specialrule{0.8pt}{0pt}{0pt}
+Zero-Shot     & \res{47.4}{0.00} & \res{60.6}{0.00} & \res{74.1}{0.00} & \res{46.0}{0.00} & \res{57.0}{0.00} & +0.0 \\
+TPT           & \res{54.8}{0.08} & \res{62.5}{0.02} & \res{75.5}{0.08} & \res{47.3}{0.20} & \res{60.0}{0.10} & \gain{+3.0} \\
+TDA           & \res{49.1}{0.00} & \best{64.6}{0.00} & \res{74.0}{0.00} & \res{47.7}{0.00} & \res{58.9}{0.00} & \gain{+1.9} \\
+AdaDEM        & \ulres{55.0}{0.12} & \res{62.0}{0.04} & \ulres{77.9}{0.74} & \ulres{48.0}{0.04} & \ulres{60.7}{0.24} & \gain{\underline{+3.7}} \\
+\rowcolor{gray!15}
+\method{}     & \best{56.8}{0.73} & \ulres{63.9}{0.08} & \best{78.5}{0.06} & \best{49.1}{0.09} & \best{62.1}{0.24} & \gain{\textbf{+5.1}} \\
+\specialrule{0.8pt}{0pt}{0pt}
+CoOp          & \res{49.8}{0.00} & \res{64.6}{0.00} & \res{74.8}{0.00} & \res{47.2}{0.00} & \res{59.1}{0.00} & \gain{+2.1} \\
+TPT           & \res{59.1}{0.74} & \res{64.5}{0.05} & \ulres{78.6}{0.01} & \ulres{49.6}{0.09} & \res{63.0}{0.22} & \gain{+6.0} \\
+TDA           & \res{56.0}{0.39} & \res{63.5}{0.00} & \res{76.3}{0.06} & \res{46.4}{0.07} & \res{60.6}{0.13} & \gain{+3.6} \\
+AdaDEM        & \ulres{61.8}{0.72} & \ulres{64.8}{0.76} & \res{77.0}{0.02} & \res{49.3}{0.00} & \ulres{63.2}{0.38} & \gain{\underline{+6.2}} \\
+\rowcolor{gray!15}
+\method{}     & \best{62.5}{0.46} & \best{65.6}{0.01} & \best{78.8}{0.85} & \best{49.9}{0.06} & \best{64.2}{0.35} & \gain{\textbf{+7.2}} \\
+\specialrule{1.2pt}{0pt}{0pt}
+\end{tabular}%
+}
+\end{table*}
