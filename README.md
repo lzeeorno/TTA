@@ -1,5 +1,7 @@
 # Test-Time Adaptation
 
+## Overview
+
 This repository contains a reproducible test-time adaptation (TTA) method for
 pretrained vision models under distribution shift. The released implementation
 covers image classification, semantic segmentation, and vision-language
@@ -32,7 +34,7 @@ repositories, revisions, licenses, and local wrapper expectations are recorded
 in `THIRD_PARTY_PROVENANCE.md` for users who need to reproduce a comparison
 table independently.
 
-## Installation
+## Environment
 
 Python 3.10 or newer is recommended. Install a PyTorch build compatible with
 your CUDA driver, then install the remaining dependencies:
@@ -47,18 +49,27 @@ pip install -r requirements.txt
 CPU is sufficient for imports, syntax checks, and unit tests. A CUDA GPU is
 recommended for benchmark runs.
 
-## Data and Checkpoints
+## Data Preparation
 
 No dataset, checkpoint, API credential, log, or generated result is included.
 Download each resource from its official source and place it at the path named
-by the selected configuration.
+by the selected configuration. The expected dataset locations are:
 
 | Resource | Expected location |
 |---|---|
 | CIFAR-100-C | `data/cifar-100-c/` |
 | ImageNet-C | `data/imagenet-c/` |
 | ImageNet-A/R/V2/Sketch | `data/imagenet-a/`, `data/imagenet-r/`, `data/imagenet-v2/`, `data/imagenet-sketch/` |
-| Cityscapes to ACDC | `data/acdc/` plus a Cityscapes-pretrained SegFormer checkpoint |
+| ACDC | `data/acdc/` |
+
+## Checkpoint Preparation
+
+Place the required pretrained weights at the paths expected by the selected
+configuration:
+
+| Resource | Expected location |
+|---|---|
+| Cityscapes-pretrained SegFormer-B5 | `models/segformer/segformer-b5-cityscapes/` or the path passed to the segmentation runner |
 | CLIP ViT-B/16 | `models/clip/openai/ViT-B-16.pt` |
 | CoOp initialization | `models/coop/imagenet/vit_b16_ep50_nctx4_seed1/model.pth.tar-50` |
 
@@ -88,7 +99,7 @@ python code/main.py \
 The default command uses the released adapter. Use `--method source` when a
 source-model-only reference is required.
 
-## Benchmark Protocols
+## Reproduce Tables 1-8
 
 The YAML files and shell wrappers define the supported standard, continual,
 single-sample, label-shift, mixed-shift, natural-shift, segmentation, and
@@ -99,7 +110,7 @@ The following matrix is the shortest route through the eight reported
 protocol groups. The wrappers run the source reference and the released
 adapter by default; no comparison source is required for these commands.
 
-| Group | Dataset / backbone | Protocol and configuration | Command | Output and metric | Hardware / runtime |
+| Table | Dataset / backbone | Protocol and configuration | Command | Expected output and metric | Hardware / runtime |
 |---|---|---|---|---|---|
 | 1 | CIFAR-100-C / ResNeXt-29 | Continual severity-5 stream; `configs/cifar100c_continual.yaml` | `bash scripts/run_cifar100c_continual.sh` | `results/cifar100c_resnext29_continual/`; top-1 accuracy | CUDA GPU; minutes per seed, hardware dependent |
 | 2 | ImageNet-C / GN ResNet-50 and ViT-B/16 | Standard and continual corruption streams; `configs/imagenetc*.yaml`, `configs/vit_imagenetc*.yaml` | Run `scripts/run_imagenetc_all*.sh` and `scripts/run_imagenetc_continual*.sh` | Matching `results/imagenetc_*` directories; mean top-1 accuracy | CUDA GPU with model-appropriate batch size; typically hours for full 15-corruption sweeps |
@@ -118,6 +129,39 @@ For a full comparison table, prepare the external repositories listed in
 `THIRD_PARTY_PROVENANCE.md` and pass their paths through the documented wrapper
 variables. No third-party method source is distributed here.
 
+## Expected Outputs
+
+Each runner writes machine-readable summaries under `results/`, which is
+ignored by Git. The expected metric is top-1 accuracy for classification and
+vision-language runs, and mIoU plus online error for segmentation. Exact
+values depend on the downloaded checkpoint, seed/order, hardware, and any
+sample cap recorded in the configuration.
+
+## Baseline Provenance
+
+Comparison implementations are not bundled. Official repositories, tested
+revisions where available, license notes, and wrapper expectations are listed
+in `THIRD_PARTY_PROVENANCE.md`. Obtain and review each external license before
+running a comparison.
+
+## Hardware and Runtime Notes
+
+CPU is sufficient for imports and tests. Full benchmark groups require a CUDA
+GPU; ImageNet-C, wild streams, segmentation, and prompt adaptation can take
+hours and may require substantial GPU memory. Runtime estimates in the table
+are approximate and hardware dependent.
+
+## Troubleshooting
+
+- If a dataset or checkpoint is missing, check the paths in the selected YAML.
+- If a comparison import fails, install the corresponding external repository
+  and set the wrapper path described in `THIRD_PARTY_PROVENANCE.md`.
+- If CUDA memory is insufficient, use the batch-size and sample-cap options
+  supported by the selected configuration and record the change in the output
+  manifest.
+- If a runner stops early, inspect its JSON summary under `results/` before
+  rerunning; generated results are local artifacts and are not committed.
+
 ## Reproducibility Notes
 
 - Keep the configuration file, random seed, corruption order, and batch size
@@ -127,7 +171,14 @@ variables. No third-party method source is distributed here.
 - The public tests validate imports, adapter invariants, and runner argument
   handling; they do not certify a benchmark score.
 
-## License and Citation
+## License
 
-Check the repository license and the accompanying paper for the applicable
-terms. Please cite the associated work when using this implementation.
+This public artifact does not include a project license file. Review the
+licenses of the code and external assets before redistribution, and contact
+the maintainers for project-level licensing terms.
+
+## Citation
+
+Please cite the associated work and this repository when using the released
+implementation. Use the bibliographic information supplied by the authors for
+the associated work; no paper or private research material is included here.
