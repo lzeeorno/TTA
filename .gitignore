@@ -24,7 +24,11 @@ references/
 *.onnx
 *.sqlite
 *.sqlite3
+*.sqlite-*
 *.db
+*.log
+*.out
+*.err
 __pycache__/
 *.py[cod]
 .pytest_cache/
