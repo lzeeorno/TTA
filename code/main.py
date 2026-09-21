@@ -1,7 +1,4 @@
-"""
-TRIAD: TRi-space Invariant ADaptation
-Main entry point for experiments
-"""
+"""Public entry point for the released test-time adaptation method."""
 
 import sys
 # Fix robustbench autoattack import issue
@@ -22,20 +19,31 @@ import json
 import math
 from copy import deepcopy
 
-from triad import (
-    TRIAD,
-    TRIAD_F1,
-    TRIAD_F2,
-    TRIAD_F3,
-    TRIAD_F4,
-    create_triad,
-)
+try:
+    from triad import (
+        TRIAD,
+        TRIAD_F1,
+        TRIAD_F2,
+        TRIAD_F3,
+        TRIAD_F4,
+        create_triad,
+    )
+except ImportError:
+    # Comparison-method code is intentionally absent from this release.  The
+    # symbols are resolved only if a caller explicitly requests that method.
+    TRIAD = TRIAD_F1 = TRIAD_F2 = TRIAD_F3 = TRIAD_F4 = create_triad = None
 from atlas import ATLAS, create_atlas
 from atlas.common import looks_like_vit_family
-from triad.utils import (
-    set_seed, save_results, AverageMeter, accuracy,
-    IMAGENET_C_CORRUPTIONS, CIFAR_C_CORRUPTIONS, get_timestamp
-)
+try:
+    from triad.utils import (
+        set_seed, save_results, AverageMeter, accuracy,
+        IMAGENET_C_CORRUPTIONS, CIFAR_C_CORRUPTIONS, get_timestamp
+    )
+except ImportError:
+    from utils.runtime import (
+        set_seed, save_results, AverageMeter, accuracy,
+        IMAGENET_C_CORRUPTIONS, CIFAR_C_CORRUPTIONS, get_timestamp
+    )
 from datasets import (
     build_cifar_transform,
     get_corruption_loader,
@@ -45,18 +53,23 @@ from datasets import (
 )
 from models import get_model
 
-# Import baseline methods
+# Comparison implementations are optional external checkouts.  The released
+# method and its smoke path must remain importable without them.
 baselines_path = os.path.join(os.path.dirname(__file__), 'baselines')
 if baselines_path not in sys.path:
     sys.path.append(baselines_path)
-from tent import tent
-from EATA import eata
-from SAR import sar
-from SAR.sam import SAM
-import adadem as adadem_method
-import foa as foa_method
-import lcotta as lcotta_method
-import surgeon as surgeon_method
+try:
+    from tent import tent
+    from EATA import eata
+    from SAR import sar
+    from SAR.sam import SAM
+    import adadem as adadem_method
+    import foa as foa_method
+    import lcotta as lcotta_method
+    import surgeon as surgeon_method
+except ImportError:
+    tent = eata = sar = SAM = None
+    adadem_method = foa_method = lcotta_method = surgeon_method = None
 
 # Import new baseline methods (CoTTA, DeYO, RoTTA)
 # Note: CoTTA path selected dynamically based on dataset (cifar vs imagenet)
@@ -106,7 +119,10 @@ def get_cotta_module(dataset_name: str, transform_family: str = None):
         sys.path.append(cotta_path)
     return import_from_path('cotta', os.path.join(cotta_path, 'cotta.py'))
 
-deyo_method = import_from_path('deyo', os.path.join(deyo_path, 'methods/deyo.py'))
+try:
+    deyo_method = import_from_path('deyo', os.path.join(deyo_path, 'methods/deyo.py'))
+except (ImportError, FileNotFoundError):
+    deyo_method = None
 
 
 # =============================================================================
@@ -2497,6 +2513,29 @@ def run_experiment(config: dict, args):
 
 def main():
     args = parse_args()
+
+    external_requirements = {
+        'tent': tent,
+        'eata': eata,
+        'sar': sar,
+        'adadem': adadem_method,
+        'foa': foa_method,
+        'lcotta': lcotta_method,
+        'surgeon': surgeon_method,
+        'deyo': deyo_method,
+        'triad': TRIAD,
+        'triad_f1': TRIAD_F1,
+        'triad_f2': TRIAD_F2,
+        'triad_f3': TRIAD_F3,
+        'triad_f4': TRIAD_F4,
+    }
+    if args.method in external_requirements and external_requirements[args.method] is None:
+        raise RuntimeError(
+            f"Method '{args.method}' requires its official external checkout. "
+            "The public release intentionally ships only the released TTA method; "
+            "see code/baselines/README.md for provenance."
+        )
+
     _, atlas_hparam_flat = collect_atlas_hparam_overrides(args)
 
     if args.atlas_ablation_row and args.method != 'atlas':
