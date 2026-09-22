@@ -85,6 +85,13 @@ docs/rebuttal/
 *sha256*
 *sha-256*
 *hash*
+*checksum*
+*.md5
+*.md5sum
+*.sha1
+*.sha1sum
+*.sha512
+*.sha512sum
 *.sha256
 *.sha256sum
 
